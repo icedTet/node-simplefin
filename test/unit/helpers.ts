@@ -25,7 +25,8 @@ export function htmlResponse(status: number, body = '<html>error</html>'): Respo
   return new Response(body, { status, headers: { 'content-type': 'text/html' } });
 }
 
-/** fetch stub returning queued responses (last one repeats). */
+/** fetch stub returning queued responses (last one repeats; each call gets a fresh
+ *  clone because a Response body can only be read once). */
 export function mockFetch(...responses: Response[]): MockedFetch {
   const calls: FetchCall[] = [];
   let index = 0;
@@ -34,9 +35,11 @@ export function mockFetch(...responses: Response[]): MockedFetch {
     if (init?.signal?.aborted) {
       return Promise.reject(new Error('The operation was aborted'));
     }
-    const response = responses[Math.min(index, responses.length - 1)]!;
+    const stored = responses[Math.min(index, responses.length - 1)]!;
     index += 1;
-    return Promise.resolve(response);
+    const clone = stored.clone();
+    if (stored.url) Object.defineProperty(clone, 'url', { value: stored.url });
+    return Promise.resolve(clone);
   };
   return { calls, fetch };
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseAccessUrl } from '../../src/access-url';
 import { SimplefinClient } from '../../src/client';
+import { TransportError } from '../../src/errors';
 import { htmlResponse, jsonResponse, mockFetch } from './helpers';
 
 const ACCESS = 'https://abc:def@beta-bridge.simplefin.org/simplefin';
@@ -145,4 +146,38 @@ describe('SimplefinClient.getAccounts', () => {
     const client = new SimplefinClient(parseAccessUrl(ACCESS), { fetch });
     await expect(client.getAccounts()).resolves.toMatchObject({ accounts: [], errors: [] });
   });
+});
+
+describe('SimplefinClient payload validation', () => {
+  for (const [label, payload] of [
+    ['empty object', {}],
+    ['null', null],
+    ['string', 'hi'],
+    ['garbage account entry', { accounts: [1] }],
+    ['non-string errors', { errors: 'oops', accounts: [] }],
+    [
+      'transaction missing amount',
+      {
+        accounts: [
+          {
+            id: 'a',
+            name: 'A',
+            currency: 'USD',
+            balance: '1',
+            transactions: [{ id: 't', posted: 1, description: 'x' }],
+          },
+        ],
+      },
+    ],
+  ] as const) {
+    it(`raises TransportError for a 200 payload that is not a v1 AccountSet: ${label}`, async () => {
+      const { fetch } = mockFetch(jsonResponse(200, payload));
+      const error = await new SimplefinClient(ACCESS, { fetch })
+        .getAccounts()
+        .then(() => null)
+        .catch((e: unknown) => e as Error);
+      expect(error).toBeInstanceOf(TransportError);
+      expect(error?.message).toMatch(/v1 AccountSet/);
+    });
+  }
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { parseAccessUrl } from '../../src/access-url';
 import { AccessRevokedError, TransportError } from '../../src/errors';
+import type { HttpError } from '../../src/errors';
 import { requestJson } from '../../src/http';
 import { htmlResponse, jsonResponse, mockFetch } from './helpers';
 
@@ -43,7 +44,7 @@ describe('requestJson', () => {
       requestJson(bankAccess, 'accounts', new URLSearchParams(), { fetch }),
     );
     expect(error).toBeInstanceOf(TransportError);
-    expect(error.message).toMatch(/cross-host redirect/i);
+    expect(error.message).toMatch(/off-origin/);
   });
 
   it('rejects non-JSON success bodies instead of parsing garbage', async () => {
@@ -183,5 +184,38 @@ describe('requestJson', () => {
       vi.unstubAllGlobals();
     }
     expect(calls).toHaveLength(1);
+  });
+
+  it('refuses same-host scheme and port changes (redirect origin drift)', async () => {
+    for (const target of [
+      'http://beta-bridge.simplefin.org/simplefin/accounts',
+      'https://beta-bridge.simplefin.org:8443/simplefin/accounts',
+    ]) {
+      const response = jsonResponse(200, { accounts: [] });
+      Object.defineProperty(response, 'url', { value: target });
+      const { fetch } = mockFetch(response);
+      await expect(
+        requestJson(access, 'accounts', new URLSearchParams(), { fetch }),
+      ).rejects.toBeInstanceOf(TransportError);
+    }
+  });
+
+  it('detects protocol error bodies even when content-type is mangled', async () => {
+    const mangled = new Response(JSON.stringify({ errors: ['Forbidden'], accounts: [] }), {
+      status: 403,
+      headers: { 'content-type': 'text/plain' },
+    });
+    const { fetch } = mockFetch(mangled);
+    await expect(
+      requestJson(access, 'accounts', new URLSearchParams(), { fetch }),
+    ).rejects.toBeInstanceOf(AccessRevokedError);
+  });
+
+  it('keeps query strings out of error properties and messages', async () => {
+    const { fetch } = mockFetch(jsonResponse(400, { errors: ['Bad'], accounts: [] }));
+    const query = new URLSearchParams({ account: 'SECRET-ACCT-999' });
+    const error = await expectError(requestJson(access, 'accounts', query, { fetch }));
+    expect((error as HttpError).url).not.toMatch(/SECRET|account=/);
+    expect(error.message).not.toMatch(/SECRET/);
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseAccessUrl } from '../../src/access-url';
+import { InvalidAccessUrlError, SimplefinError } from '../../src/errors';
 
 describe('parseAccessUrl', () => {
   it('splits credentials from a canonical access URL', () => {
@@ -32,5 +33,14 @@ describe('parseAccessUrl', () => {
 
   it('trims surrounding whitespace', () => {
     expect(() => parseAccessUrl('  https://a:b@host/sf\n')).not.toThrow();
+  });
+});
+
+describe('parseAccessUrl typed failures', () => {
+  it('throws InvalidAccessUrlError (a SimplefinError) for every malformed form', () => {
+    for (const bad of ['nope', 'http://a:b@h/x', 'https://h/x', 'https://a%zz:b@h/x']) {
+      expect(() => parseAccessUrl(bad)).toThrow(InvalidAccessUrlError);
+      expect(() => parseAccessUrl(bad)).toThrow(SimplefinError);
+    }
   });
 });
