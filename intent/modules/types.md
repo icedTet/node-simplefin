@@ -29,7 +29,8 @@ The typed contract between wire and callers: wire shapes mirror the protocol JSO
 - Optional public fields appear via conditional spread — distinguish "absent" from "empty".
 
 ## Dependencies
-Depended on by: [[modules/normalize]], [[modules/client]], public exports in `src/index.ts`.
+Depended on by: [[modules/normalize]], [[modules/client]], [[modules/wire]] (type-only),
+[[modules/errors]] (type-only), public exports in `src/index.ts`.
 Source of truth for field semantics: [[maps/external]]
 
 ## Constraints

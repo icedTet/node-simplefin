@@ -102,3 +102,5 @@ with `provenance: declared`, README quickstart copy-pastable.
 
 ## [2026-10-19] review | Stage-2 round 2: A NEW-1..5 + C W1..6, all verified by direct grep/inspection (claims cross-corroborated between reviewers; no separate B round deemed necessary at this scale). Fixed: unified display-array helper, errlist presence-gate relaxation, citations/provenance, symmetry-adjacent tests, wiki edges/maps/log accuracy. Process note (W6): round-1 src/test fixes landed without same-commit doc edits; docs followed one commit later in-session — will inline next stage.
 
+## [2026-10-19] review | Stage-2 round 3: Gate A APPROVE (items closed; live SDK v1+v2 demo check passes). Gate C final 2 doc nits fixed here (log phantom touched-item; types.md back-edges for wire/errors type-only imports). Stage 2 green.
+
