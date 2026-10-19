@@ -31,8 +31,8 @@ Depends on: [[modules/net]], [[modules/errors]] — protocol facts: [[maps/exter
 
 ## Constraints
 - Never logs the setup token or resulting Access URL; error causes must not echo creds.
-- CF-edge 403 discrimination is heuristic (content-type + body prefix); Stage 3 integration
-  re-verifies against the live edge.
+- CF-edge 403 discrimination is heuristic (content-type + body prefix). Live re-verify is
+  deferred to a private-token run — the demo flow cannot script an edge block (testing.md).
 
 ## Implementation pointers
 `src/claim.ts` (whole file).

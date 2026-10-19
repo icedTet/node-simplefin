@@ -30,8 +30,10 @@ enters here and either becomes a typed model or a typed error.
   string-array `errors`); anything else → `TransportError` — never a deep TypeError.
 - Hyphenated wire keys → camelCase public fields; `errors` verbatim; missing
   `transactions` → `[]`; `pending !== true → false`.
-- Connections deduped by (sfin-url, domain, name); synthesized `conn-N` ids are **per
-  response, not stable across calls** (documented to consumers).
+- Connections deduped by (sfin-url, domain, name); v1 ids are synthesized
+  **deterministically from that same identity** (`v1:<url>:<domain>:<name>`), stable
+  across responses — a precondition of sync.ts's cross-window merge. types.md documents
+  the shape.
 - `extra` objects pass through untouched.
 - Amount/balance strings copied byte-for-byte — no numeric handling anywhere.
 - v1↔v2 symmetry is a tested invariant (`test/unit/normalize.test.ts`): the same
