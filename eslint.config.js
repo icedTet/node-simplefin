@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import { builtinModules } from 'node:module';
 import tseslint from 'typescript-eslint';
 import prettierConfig from 'eslint-config-prettier';
 
@@ -17,7 +18,12 @@ export default tseslint.config(
   {
     files: ['src/**/*.ts'],
     rules: {
-      'no-restricted-imports': ['error', { patterns: ['node:*', 'fs', 'path', 'url'] }],
+      // src must stay isomorphic even if a dependency leaks node types into the program
+      'no-restricted-imports': [
+        'error',
+        { patterns: ['node:*', ...builtinModules, ...builtinModules.map((m) => `${m}/*`)] },
+      ],
+      'no-restricted-globals': ['error', 'process', 'Buffer', '__dirname', '__filename', 'global'],
     },
   },
   {
