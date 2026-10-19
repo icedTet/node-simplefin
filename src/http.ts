@@ -4,6 +4,7 @@
 // allowed to mean "revoked"; success requires a JSON content-type (shape gate: normalizer).
 
 import type { AccessUrl } from './access-url';
+import type { ProtocolError } from './types';
 import {
   AccessRevokedError,
   BadRequestError,
@@ -20,6 +21,7 @@ import {
   rewriteLegacyHost,
   type FetchLike,
 } from './net';
+import { projectErrlist } from './normalize';
 
 export interface RequestOptions {
   fetch?: FetchLike;
@@ -27,42 +29,41 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
-function readProtocolBody(input: unknown): { errors: string[]; isProtocol: boolean } {
+function readProtocolBody(input: unknown): {
+  errors: string[];
+  errlist: ProtocolError[];
+  isProtocol: boolean;
+} {
   let body = input;
   if (typeof body === 'string') {
     try {
       body = JSON.parse(body) as unknown;
     } catch {
-      return { errors: [], isProtocol: false };
+      return { errors: [], errlist: [], isProtocol: false };
     }
   }
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return { errors: [], isProtocol: false };
+    return { errors: [], errlist: [], isProtocol: false };
   }
   const record = body as Record<string, unknown>;
   const errors: string[] = [];
-  let isProtocol = false;
-  for (const key of ['errors', 'errlist']) {
-    const list = record[key];
-    if (!Array.isArray(list)) continue;
-    isProtocol = true;
-    for (const entry of list) {
-      if (typeof entry === 'string') errors.push(entry);
-      else if (entry && typeof entry === 'object' && 'msg' in entry) {
-        const { msg } = entry as { msg: unknown };
-        if (typeof msg === 'string') errors.push(msg);
-      }
-    }
+  if (Array.isArray(record.errors))
+    errors.push(...record.errors.filter((e): e is string => typeof e === 'string'));
+  const errlist = projectErrlist(record.errlist);
+  errors.push(...errlist.map((entry) => entry.msg));
+  if (Array.isArray(record.errors) || errlist.length > 0 || 'errlist' in record) {
+    return { errors, errlist, isProtocol: true };
   }
-  return { errors, isProtocol };
+  return { errors, errlist, isProtocol: false };
 }
 
 function classifyStatus(status: number, url: string, body: unknown): never {
-  const { errors, isProtocol } = readProtocolBody(body);
+  const { errors, errlist, isProtocol } = readProtocolBody(body);
   const message = (text: string) => `${text} (HTTP ${status}, ${url})`;
-  if (status === 400) throw new BadRequestError(message('Bad request'), status, url, errors);
+  if (status === 400)
+    throw new BadRequestError(message('Bad request'), status, url, errors, errlist);
   if (status === 402) {
-    throw new PaymentRequiredError(message('Payment required'), status, url, errors);
+    throw new PaymentRequiredError(message('Payment required'), status, url, errors, errlist);
   }
   if (status === 403) {
     if (!isProtocol) {
@@ -75,11 +76,13 @@ function classifyStatus(status: number, url: string, body: unknown): never {
       status,
       url,
       errors,
+      errlist,
     );
   }
-  if (status === 429) throw new RateLimitError(message('Rate limited'), status, url, errors);
-  if (status >= 500) throw new ServerError(message('Server error'), status, url, errors);
-  throw new HttpError(message('Unexpected status'), status, url, errors);
+  if (status === 429)
+    throw new RateLimitError(message('Rate limited'), status, url, errors, errlist);
+  if (status >= 500) throw new ServerError(message('Server error'), status, url, errors, errlist);
+  throw new HttpError(message('Unexpected status'), status, url, errors, errlist);
 }
 
 /** GET `{root}{path}?{query}` against an access URL; returns the parsed wire body.

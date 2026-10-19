@@ -23,8 +23,8 @@ trap, status taxonomy) in one reviewable place so no other module touches `fetch
   `TransportError`.
 - Error `url` property and messages are **origin+pathname** — query strings (which can
   carry account ids) never enter error fields (errors.md).
-- Statuses 400/402/403/429/5xx ⇒ typed `HttpError` subclasses with `errors: string[]`
-  extracted from both v1 (`errors`) and v2 (`errlist[].msg`) shapes.
+- Statuses 400/402/403/429/5xx ⇒ typed `HttpError` subclasses carrying `errors: string[]`
+  (legacy strings + errlist msgs) and `errlist: ProtocolError[]` (via normalize.projectErrlist).
 
 ## Dependencies
 Depends on: [[modules/net]], [[modules/errors]], [[modules/access-url]].
@@ -38,4 +38,5 @@ Depended on by: [[modules/client]]. Related: [[maps/external]]
 `src/http.ts` — `classifyStatus` is the taxonomy; `readProtocolBody` the detector.
 
 ## Known gaps
-- v2 `errlist` full structured codes (not just msg strings) surface in Stage 2 normalize.
+- `projectErrlist` import couples http to normalize; if a third consumer needs it, lift
+  it to its own module.

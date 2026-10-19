@@ -14,12 +14,15 @@ orchestration only, all mechanics live in [[modules/http]]/[[modules/normalize]]
 
 ## Contract
 - `new SimplefinClient(accessUrl: string | AccessUrl, {fetch?, headers?, signal?})`.
-- `getAccounts({startDate?, endDate?, pending?, account?}) → Promise<AccountSet>`.
+- `getAccounts({startDate?, endDate?, pending?, account?, balancesOnly?, version?}) → Promise<AccountSet>`.
+  `version` selects the wire shape requested (default **1**, sent explicitly); output is
+  normalized either way. `balancesOnly: true → balances-only=1`, presence semantics.
+  Unknown conn_id refs on v2 leave `connectionId` unset (normalize.md).
 - `Date | number` (unix seconds) accepted; converted with floor.
 - `pending: true → pending=1`; **false/undefined omit the param** (presence semantics,
   external.md) — callers cannot express `pending=0`, by design.
 - `account: string | string[]` → repeated params.
-- v1 wire is requested by default; Stage 2 adds `version`.
+
 
 ## Dependencies
 Depends on: [[modules/http]], [[modules/normalize]], [[modules/access-url]], [[modules/types]].
@@ -34,3 +37,6 @@ Depends on: [[modules/http]], [[modules/normalize]], [[modules/access-url]], [[m
 
 ## Known gaps
 - Rate-limit budgeting helper: Stage 3 (`src/sync.ts`).
+- Sending an explicit `version=1` (rather than omitting) follows external.md's "prefer the
+  version request param" guidance; if any first-party-institution server proves allergic
+  to the param, revisit. (Watch Stage 3 live runs.)

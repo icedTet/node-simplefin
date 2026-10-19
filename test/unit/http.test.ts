@@ -195,6 +195,17 @@ describe('requestJson', () => {
     expect(error.name).toBe('HttpError');
   });
 
+  it('attaches structured errlist entries to HttpErrors', async () => {
+    const { fetch } = mockFetch(
+      jsonResponse(403, { errlist: [{ code: 'gen.auth', msg: 'Forbidden' }], accounts: [] }),
+    );
+    const error = (await expectError(
+      requestJson(access, 'accounts', new URLSearchParams(), { fetch }),
+    )) as AccessRevokedError;
+    expect(error.errlist).toEqual([{ code: 'gen.auth', msg: 'Forbidden' }]);
+    expect(error.errors).toEqual(['Forbidden']);
+  });
+
   it('falls back to the ambient fetch when none is injected', async () => {
     const { calls, fetch } = mockFetch(jsonResponse(200, { accounts: [] }));
     vi.stubGlobal('fetch', fetch);

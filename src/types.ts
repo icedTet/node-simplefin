@@ -12,7 +12,7 @@ export interface WireOrganization {
   id?: string;
 }
 
-export interface WireTransaction {
+export interface WireTransactionV1 {
   id: string;
   /** Unix seconds; 0 when pending (fall back to transacted_at). */
   posted: number;
@@ -24,7 +24,7 @@ export interface WireTransaction {
   extra?: Record<string, unknown>;
 }
 
-export interface WireAccount {
+export interface WireAccountV1 {
   id: string;
   name: string;
   /** ISO 4217 code, or a URL for custom currencies (GET it for {name, abbr}). */
@@ -32,25 +32,75 @@ export interface WireAccount {
   balance: string;
   'available-balance'?: string;
   'balance-date'?: number;
-  transactions?: WireTransaction[];
+  transactions?: WireTransactionV1[];
   org?: WireOrganization;
   extra?: Record<string, unknown>;
 }
 
 export interface WireAccountSetV1 {
   errors?: string[];
-  accounts: WireAccount[];
+  errlist?: WireErrorEntry[];
+  accounts: WireAccountV1[];
+}
+
+// ── v2 wire (protocol.html v2.0.0-draft, opt-in via version=2) ──────────────────
+
+export interface WireErrorEntry {
+  code: string;
+  msg: string;
+  conn_id?: string;
+  account_id?: string;
+}
+
+export interface WireConnectionV2 {
+  conn_id: string;
+  name: string;
+  org_id: string;
+  org_url?: string;
+  sfin_url: string;
+  [key: string]: unknown;
+}
+
+export interface WireTransactionV2 extends WireTransactionV1 {
+  /** Live-bridge extras, not in the written spec (external.md): treat as optional. */
+  payee?: string;
+  memo?: string;
+  mcc?: string;
+}
+
+export interface WireAccountV2 {
+  id: string;
+  name: string;
+  conn_id: string;
+  currency: string;
+  balance: string;
+  'available-balance'?: string;
+  'balance-date'?: number;
+  transactions?: WireTransactionV2[];
+  /** Observed live, schema explicitly not guaranteed (bridge-issues #43). */
+  holdings?: Holding[];
+  extra?: Record<string, unknown>;
+}
+
+export interface WireAccountSetV2 {
+  errlist?: WireErrorEntry[];
+  errors?: string[];
+  connections: WireConnectionV2[];
+  accounts: WireAccountV2[];
+  [key: string]: unknown;
 }
 
 // ── public normalized model (version-independent) ───────────────────────────────
 
 export interface Connection {
-  /** Stable within this response; v1 synthesizes from org identity, v2 supplies conn_id. */
+  /** v2: server-supplied conn_id. v1: synthesized `conn-N`, per response only. */
   readonly id: string;
   readonly name: string;
   readonly domain?: string;
   readonly url?: string;
   readonly sfinUrl: string;
+  /** v2 organization id (unique per server, not globally). */
+  readonly orgId?: string;
 }
 
 export interface Transaction {
@@ -61,7 +111,34 @@ export interface Transaction {
   readonly description: string;
   readonly transactedAt?: number;
   readonly pending: boolean;
+  /** Live-bridge extras (not in the written spec; presence not guaranteed). */
+  readonly payee?: string;
+  readonly memo?: string;
+  readonly mcc?: string;
   readonly extra?: Record<string, unknown>;
+}
+
+/** Schema explicitly not guaranteed by the bridge; typed accessors for observed
+ *  fields, unknown keys preserved. */
+export interface Holding {
+  [key: string]: unknown;
+  created?: number;
+  symbol?: string;
+  shares?: string;
+  cost_basis?: string;
+  market_value?: string;
+  purchase_price?: string;
+  currency?: string;
+  description?: string;
+}
+
+export interface ProtocolError {
+  /** Grammar `prefix.[subcode]`; prefixes gen|con|act. Unknown subcodes fall back to
+   *  the naked prefix via {@link errorPrefix} — consumers should classify on prefix. */
+  readonly code: string;
+  readonly msg: string;
+  readonly connId?: string;
+  readonly accountId?: string;
 }
 
 export interface Account {
@@ -72,13 +149,18 @@ export interface Account {
   readonly availableBalance?: string;
   readonly balanceDate?: number;
   readonly transactions: readonly Transaction[];
+  readonly holdings?: readonly Holding[];
   readonly connectionId?: string;
   readonly extra?: Record<string, unknown>;
 }
 
 export interface AccountSet {
-  /** Display-ready strings; sanitize before rendering. */
+  /** Display strings from legacy `errors` + projected errlist msgs; sanitize before render. */
   readonly errors: readonly string[];
+  /** Structured v2-style errors when present (also defensively on v1 responses). */
+  readonly errlist: readonly ProtocolError[];
   readonly connections: readonly Connection[];
   readonly accounts: readonly Account[];
+  /** Undocumented live-bridge info array (external.md); surfaced, never interpreted. */
+  readonly xApiMessage?: readonly string[];
 }

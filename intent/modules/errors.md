@@ -17,6 +17,8 @@ Typed outcomes instead of stringly-typed throws, so apps can branch on
   throws is a descendant — a `catch (e instanceof SimplefinError)` world is closed
   (plain TypeError only for environment misuse, e.g. no-fetch-and-none-injected).
 - `HttpError` adds `status`, `url` (origin+pathname only — queries excluded), `errors: string[]`.
+- `HttpError.errlist: ProtocolError[]` — structured protocol errors when the body carried
+  an errlist (classification via errorPrefix lives in normalize.md).
 - Taxonomy: `InvalidTokenError` (setup token), `InvalidAccessUrlError` (access URL),
   `ClaimError` (403 with protocol refusal body), `AccessRevokedError` (403 with protocol
   error body on data), `PaymentRequiredError` (402), `RateLimitError` (429),
@@ -39,5 +41,4 @@ Depended on by: [[modules/http]], [[modules/claim]], [[modules/net]], [[modules/
 ## Implementation pointers
 `src/errors.ts`
 
-## Known gaps
-- v2 `errlist` structured codes (`code` field) attach in Stage 2.
+

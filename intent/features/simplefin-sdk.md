@@ -39,7 +39,7 @@ wiki (subagent) → loop until green → commit, push, tag `stage-N`, CI green b
 |---|---|---|
 | 0 | Toolchain, CI, wiki bootstrap | lint/typecheck/test/build/smoke/pack green locally; CI workflow committed |
 | 1 | claim + access-url + http + client (v1) + errors | unit tests incl. all error mappings; scenario tests below pass |
-| 2 | v2 + normalize + passthrough fields | version-normalization invariants tested |
+| 2 | v2 + normalize + passthrough fields | version-normalization invariants tested — landed, gates pending |
 | 3 | full suite, integration opt-in, sync helpers | coverage ≥90%; integration run documented in this page incl. live edge/UA-403 discrimination re-verify (modules/claim.md) |
 | 4 | README/docs/CHANGELOG, publish config | `npm pack` clean; docs match API |
 
@@ -62,7 +62,10 @@ wiki (subagent) → loop until green → commit, push, tag `stage-N`, CI green b
   - Given a 429, Then `RateLimitError`; given 402, `PaymentRequiredError`.
   - Given v1 response, When normalized, Then output shape equals v2-normalized shape:
     account carries `connectionId`; org fields appear as a `connection` entry.
-    (v2 `errlist` projection with naked-prefix fallback: Stage 2.)
+  - Given `version: 2`, Then the request carries `version=2` and the v2 payload maps to
+    the same model (server conn_ids, errlist with `errorPrefix` fallback,
+    holdings/payee/memo/mcc/x-api-message captured, org_name-style extras preserved raw).
+  - Given `balancesOnly: true`, Then `balances-only=1`; false/undefined omit it.
   - Given any amount/balance, Then its type is `string` and byte-equal to the wire value.
   - Given `pending: false`, Then the request contains **no** `pending` param; given true, `pending=1`.
   - Given a response served from a different origin (redirect), Then `TransportError` —
@@ -93,3 +96,5 @@ with `provenance: declared`, README quickstart copy-pastable.
 ## Outcome
 
 (pending)
+
+## [2026-10-19] implement | Stage 2: normalizeV2 + version dispatch + errorPrefix + errlist/passthrough capture + HttpError.errlist; 69 tests, symmetry invariant pinned; explicit version=1 param (external.md guidance) — flagged in client.md.

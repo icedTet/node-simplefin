@@ -4,6 +4,7 @@
 export { claim, type ClaimOptions } from './claim';
 export { SimplefinClient, type GetAccountsOptions, type ClientOptions } from './client';
 export { parseAccessUrl, type AccessUrl } from './access-url';
+export { errorPrefix } from './normalize';
 export {
   SimplefinError,
   InvalidTokenError,
@@ -21,11 +22,18 @@ export type {
   Account,
   AccountSet,
   Connection,
+  Holding,
+  ProtocolError,
   Transaction,
-  WireAccount,
+  WireAccountV1,
   WireAccountSetV1,
+  WireAccountV2,
+  WireAccountSetV2,
+  WireConnectionV2,
+  WireErrorEntry,
   WireOrganization,
-  WireTransaction,
+  WireTransactionV1,
+  WireTransactionV2,
 } from './types';
 export type { FetchLike } from './net';
 

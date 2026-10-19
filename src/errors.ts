@@ -1,6 +1,8 @@
 // intent: intent/modules/errors.md
 // Error taxonomy. Protocol facts behind every mapping: intent/maps/external.md.
 
+import type { ProtocolError } from './types';
+
 export class SimplefinError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, options);
@@ -33,12 +35,22 @@ export class HttpError extends SimplefinError {
   readonly url: string;
   /** Display strings from `errors`/`errlist` bodies — sanitize before rendering. */
   readonly errors: string[];
+  /** Structured protocol errors when the body carried an errlist (classify on
+   *  errorPrefix(code), not code). */
+  readonly errlist: ProtocolError[];
 
-  constructor(message: string, status: number, url: string, errors: string[] = []) {
+  constructor(
+    message: string,
+    status: number,
+    url: string,
+    errors: string[] = [],
+    errlist: ProtocolError[] = [],
+  ) {
     super(message);
     this.status = status;
     this.url = url;
     this.errors = errors;
+    this.errlist = errlist;
   }
 }
 

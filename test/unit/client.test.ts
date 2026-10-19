@@ -141,6 +141,46 @@ describe('SimplefinClient.getAccounts', () => {
     expect(new URL(calls[0]!.url).searchParams.getAll('account')).toEqual(['single']);
   });
 
+  it('requests version=2 and normalizes the v2 payload end to end', async () => {
+    const { calls, fetch } = mockFetch(
+      jsonResponse(200, {
+        errlist: [],
+        connections: [{ conn_id: 'c-1', name: 'B', org_id: 'b', sfin_url: 'https://sf.b' }],
+        accounts: [
+          {
+            id: 'a',
+            name: 'A',
+            conn_id: 'c-1',
+            currency: 'USD',
+            balance: '9.99',
+            transactions: [],
+          },
+        ],
+      }),
+    );
+    const set = await new SimplefinClient(ACCESS, { fetch }).getAccounts({
+      version: 2,
+      balancesOnly: true,
+    });
+    const query = new URL(calls[0]!.url).searchParams;
+    expect(query.get('version')).toBe('2');
+    expect(query.get('balances-only')).toBe('1');
+    expect(set.accounts[0]!.connectionId).toBe('c-1');
+    expect(set.errlist).toEqual([]);
+  });
+
+  it('defaults to the v1 wire with an explicit version=1 param', async () => {
+    const { calls, fetch } = mockFetch(jsonResponse(200, { accounts: [] }));
+    await new SimplefinClient(ACCESS, { fetch }).getAccounts();
+    expect(new URL(calls[0]!.url).searchParams.get('version')).toBe('1');
+  });
+
+  it('omits balances-only unless true (presence semantics like pending)', async () => {
+    const { calls, fetch } = mockFetch(jsonResponse(200, { accounts: [] }));
+    await new SimplefinClient(ACCESS, { fetch }).getAccounts({ balancesOnly: false });
+    expect(new URL(calls[0]!.url).searchParams.has('balances-only')).toBe(false);
+  });
+
   it('accepts an already-parsed access URL', async () => {
     const { fetch } = mockFetch(jsonResponse(200, { accounts: [] }));
     const client = new SimplefinClient(parseAccessUrl(ACCESS), { fetch });
