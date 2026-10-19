@@ -83,6 +83,7 @@ with `provenance: declared`, README quickstart copy-pastable.
 ## [2026-10-19] review | Stage-0 gates: A NOT READY (isomorphism guard ineffective, CI node20 row invalid, coverage cmd red, tautology tests), C NOT READY (13 findings). B adjudicated: A1-A8/A10 + C-F1..F14 validated; C-F3 (external.md self-contradiction) FALSE-POSITIVE via live re-probe (bridge 302 → bare root, path dropped). All validated fixes applied; judgment calls taken: exports default condition added, engines floor >=22, pointer-comment deviation accepted until intent/modules/ exists (Stage 1).
 ## [2026-10-19] review | Round 2: A NOT READY (N1 TS1471 CJS types — validated via consumer probe, N2 builtin/globals guard gap — validated, N3 engines note), C PASS w/ reservations (403 taxonomy over-broad — validated as wiki fix). B: N5 and NodeNext-half of N1 FALSE-POSITIVE. Fixes: nested exports conditions (probe now clean), builtinModules-pattern lint + no-restricted-globals (both proven to fire), 403-mapping conditioned on protocol error bodies everywhere, code: pointers completed, dev-floor documented.
 ## [2026-10-19] review | Round 3: Gate A APPROVE, Gate C PASS (3 LOW polish: residual unconditional claim-403 wording, stale stage-0 tag, incomplete backstop citation) — all fixed; stage-0 tag moved to green HEAD. Stage 0 shipped.
+## [2026-10-19] implement | Stage 1: claim/access-url/net/http/client/normalize/types/errors landed; 39 unit tests, coverage 92-100%, all module pages written; UA stance corrected to runtime-native (no custom header; CORS-safe).
 
 ## Outcome
 

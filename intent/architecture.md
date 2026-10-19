@@ -38,18 +38,19 @@ credentials, then polls `{access}/accounts`. Facts and quirks: [maps/external.md
 - **Never silently follow cross-host redirects.** Bridge→beta-bridge 302s drop paths and
   credentials; client uses `redirect: 'manual'` and rewrites known-safe cases explicitly.
 
-## Planned modules (land in Stage 1+)
+## Modules (status per stage; pages in intent/modules/)
 
 | Module | Responsibility | Lands |
 |---|---|---|
-| `src/index.ts` | public API surface | 1 |
-| `src/claim.ts` | setup token → access URL | 1 |
-| `src/access-url.ts` | parse/store access URLs, split credentials | 1 |
-| `src/http.ts` | fetch wrapper: auth, UA, redirects, status→error | 1 |
-| `src/client.ts` | `SimplefinClient` public class over http + normalize | 1 |
-| `src/types.ts` | wire + normalized models (v1/v2) | 1–2 |
-| `src/errors.ts` | error taxonomy | 1 |
-| `src/normalize.ts` | v1→normalized, errlist code fallback | 2 |
+| `src/index.ts` | public API surface | 1 ✓ |
+| `src/claim.ts` | setup token → access URL | 1 ✓ |
+| `src/access-url.ts` | parse/store access URLs, split credentials | 1 ✓ |
+| `src/net.ts` | fetch seam, UTF-8 base64, legacy host rewrite | 1 ✓ |
+| `src/http.ts` | fetch wrapper: auth, redirect trap, status→error | 1 ✓ |
+| `src/client.ts` | `SimplefinClient` public class over http + normalize | 1 ✓ |
+| `src/errors.ts` | error taxonomy | 1 ✓ |
+| `src/types.ts` | wire + normalized models | 1 ✓ (v2 shapes Stage 2) |
+| `src/normalize.ts` | wire→public; v1 org→connections; errlist fallback | 1 ✓ (v2 branch Stage 2) |
 | `src/sync.ts` | date-window helpers (90-day cap, 5-day overlap) | 3 |
 
 ## Build & toolchain

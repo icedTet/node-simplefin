@@ -77,8 +77,11 @@ limited; 5xx server. Live + dev guide + sure client.
   `Location: https://beta-bridge.simplefin.org/` — bare root, path dropped (re-probed
   2026-10-19). Treat with `redirect: 'manual'`, rewrite host for the API root, or fail
   explicitly.
-- Cloudflare edge **403s requests with generic library UAs** (`Python-urllib/...`); a real
-  `User-Agent` (e.g. `node-simplefin/<ver>`) is required. bridge-issues#27 + live.
+- Cloudflare edge **403s requests with generic library UAs** (`Python-urllib/...`). The
+  runtime-native UAs that matter here were live-verified as passing: Node/undici, Bun, Deno,
+  browsers, and even an empty UA all get 200; only some library signatures are blocked.
+  The SDK therefore sends **no custom UA header** — a custom header on the claim POST would
+  break its CORS-simple status anyway (bridge-issues#27 + live).
 - Browser CORS: `/accounts` echoes `access-control-allow-origin` + credentials; claim POST
   is a CORS-simple request — never add custom headers to it (would trigger preflight;
   OPTIONS on claim 404s). Live + dev guide.

@@ -36,7 +36,8 @@ code: [test/, scripts/smoke.mjs, vitest.config.ts, .github/workflows/ci.yml]
 - `pending=0` is treated as *include pending* (presence check), omit to exclude.
 - Unknown `errlist` codes fall back to naked-prefix handling (`act.failedXYZ` behaves as `act.`).
 - Redirects are never followed across hosts; userinfo never reaches a `fetch` URL.
-- SDK sends a meaningful User-Agent; claim POST sends no custom headers (CORS-simple).
+- Claim POST sends no custom headers (CORS-simple); GETs add only `Authorization` +
+  `Accept` (both CORS-safe). Runtime-native UAs are live-verified acceptable (external.md).
 
 ## Commands
 
