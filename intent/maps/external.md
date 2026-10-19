@@ -1,0 +1,87 @@
+---
+type: map
+status: current
+provenance: mixed
+updated: 2026-10-19
+code: [src/http.ts, src/claim.ts]
+---
+
+# External map: SimpleFIN protocol contract
+
+Verified 2026-10-19 against docs (`https://www.simplefin.org/protocol.html` v2.0.0-draft,
+`protocol-v1.html` v1.0.7) and live probes of `https://beta-bridge.simplefin.org/simplefin/*`.
+**Trust this page over memory.** Each row has provenance.
+
+## Endpoints (root = e.g. `https://beta-bridge.simplefin.org/simplefin`)
+
+| Call | Auth | Response | Provenance |
+|---|---|---|---|
+| `GET {root}/info` | none | `{"versions":["1.0"]}` — **do not trust for v2 detection**; reports 1.0 while serving v2 via param | live probe; bridge-issues#26 |
+| `GET {root}/create` | user session | HTML page; live = 303 → bridge homepage login | live probe |
+| `POST {root}/claim/:token` | none; `Content-Length: 0` | 200 `text/plain` Access URL (no trailing newline; trim anyway); 403 = used/missing/possibly compromised | docs + live demo e2e |
+| `GET {access}/accounts` | Basic (from access URL userinfo) | 200 JSON `AccountSet`; see quirks | docs + live |
+
+`GET` on claim URL = 404 (POST only). `/access`, `/latest`, `/updates`,
+`cursor`, `window`, `X-Status`, `X-Next-Cursor` **do not exist** — all 404 on live bridge
+(planned-probe 2026-10-19; don't implement them).
+
+## Access URL & auth
+
+- Form: `https://id:key@host/simplefin` with 32+ char random id/key. Node's `fetch` **rejects
+  URLs containing userinfo** — split credentials out and send `Authorization: Basic` manually.
+  Provenance: Node 18+ behavior, live.
+- Auth failures return **403, never 401** (no `WWW-Authenticate`). Body JSON
+  `{"errors":["Forbidden"]}` (v1) / `{"errlist":[{"code":"gen.auth",...}],...}` (v2). Live.
+
+## Query params on /accounts
+
+| Param | Semantics | Provenance |
+|---|---|---|
+| `start-date` | unix secs, inclusive (≥) | spec v1/v2 |
+| `end-date` | unix secs, exclusive (<) | spec v1/v2 |
+| `pending` | include pending iff param **present** (`pending=0` behaves like 1 — omit to exclude) | spec + live (Ruby presence check) |
+| `account` | filter by id; repeatable; unknown id → 200 empty | spec v2 + live |
+| `balances-only` | `1` = balances without transaction payloads (`transactions` key still present, empty) | spec v2 + live |
+| `version` | `2` selects v2 schema; default serves v1 | spec + live |
+
+## Response model differences (v1 → v2)
+
+| v1 (default) | v2 (`version=2`) | Provenance |
+|---|---|---|
+| `errors: string[]` (display strings — sanitize) | `errlist: {code,msg,conn_id?,account_id?}[]`, code grammar `prefix.[subcode]`, prefixes `gen`/`con`/`act`, fall back to naked prefix on unknown subcode | spec v2.0.0 |
+| per-account `org {domain,name,sfin-url,...}` | top-level `connections[] {conn_id,name,org_id,org_url?,sfin_url}`; account gains required `conn_id` | spec v2.0.0 |
+| `amount` numeric **string**, positive = deposit; `posted` unix int, **0 when pending**; `available-balance` optional; custom currency = `currency` is a URL → GET `{name,abbr}` | same fields | spec v1/v2 |
+
+Undocumented-but-live fields (capture as optional passthrough, don't depend): `holdings[]`
+(bridge-issues: "don't depend on its schema"), transaction `payee`, `memo`, `mcc`,
+`transacted_at`, `extra`, top-level `x-api-message: string[]`, connection `org_name`. Live.
+
+## Status codes
+
+200 ok; 400 bad request; 402 payment required (unpaid subscription); 403 auth failed /
+claim already used / **token revoked**; 429 rate limited; 5xx server. Live + dev guide + sure client.
+
+## Operational constraints
+
+- **≤24 requests/day/access token** expected; over-quota → warnings in `errors`/`errlist`;
+  abuse → **token disabled server-side**. Quotas replenish through the day; per-account
+  requests have their own quota. Provenance: `/info/developers`.
+- **90-day max date window**; exceeding is capped server-side with a `gen.api` errlist
+  entry. Live probe.
+- Polling model: daily GET with ~**5-day overlapping windows**, diff by txn `id`;
+  schedule at a **random minute** (traffic spikes on the hour). Dev guide.
+- `bridge.simplefin.org` currently **302-redirects everything to beta-bridge**, dropping
+  path+creds on API calls. Treat `redirect: 'manual'`, rewrite host for the API root, or
+  fail explicitly. Live probe 2026-10-19.
+- Cloudflare edge **403s requests with generic library UAs** (`Python-urllib/...`); a real
+  `User-Agent` (e.g. `node-simplefin/<ver>`) is required. bridge-issues#27 + live.
+- Browser CORS: `/accounts` echoes `access-control-allow-origin` + credentials; claim POST
+  is a CORS-simple request — never add custom headers to it (would trigger preflight;
+  OPTIONS on claim 404s). Live + dev guide.
+- v2 is opt-in (`version=2`); v1 supported ≥1 year after 2026-03-19. GH discussion #33.
+
+## Security invariants (spec checklist)
+
+HTTPS-only (reject http: URLs); never follow insecure redirects; store access URLs as
+securely as financial data; display `errors`/`errlist`/`msg` strings only sanitized; on
+claim 403, tell the user the token may be compromised and to disable/recreate it.
