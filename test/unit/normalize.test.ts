@@ -2,50 +2,32 @@ import { describe, expect, it } from 'vitest';
 import { errorPrefix, normalizeV1, normalizeV2 } from '../../src/normalize';
 import { TransportError } from '../../src/errors';
 
-const V1_WIRE = {
-  errors: ['v1 warning'],
-  accounts: [
-    {
-      id: 'acc-1',
-      name: 'Checking',
-      currency: 'USD',
-      balance: '250.42',
-      'available-balance': '240.00',
-      'balance-date': 1760000000,
-      org: { domain: 'bank.example', name: 'Bank', 'sfin-url': 'https://sf.bank.example' },
-      transactions: [{ id: 't1', posted: 1759000000, amount: '-10.10', description: 'Cafe' }],
-    },
-  ],
-};
-
-const V2_WIRE = {
-  errlist: [],
-  connections: [
-    {
-      conn_id: 'c-9',
-      name: 'Bank',
-      org_id: 'bank.example',
-      org_url: 'https://bank.example',
-      sfin_url: 'https://sf.bank.example',
-    },
-  ],
-  accounts: [
-    {
-      id: 'acc-1',
-      name: 'Checking',
-      conn_id: 'c-9',
-      currency: 'USD',
-      balance: '250.42',
-      'available-balance': '240.00',
-      'balance-date': 1760000000,
-      transactions: [{ id: 't1', posted: 1759000000, amount: '-10.10', description: 'Cafe' }],
-    },
-  ],
-};
-
 describe('normalizeV2', () => {
   it('maps v2 connections and conn_id links to the public model', () => {
-    const set = normalizeV2(V2_WIRE);
+    const set = normalizeV2({
+      errlist: [],
+      connections: [
+        {
+          conn_id: 'c-9',
+          name: 'Bank',
+          org_id: 'bank.example',
+          org_url: 'https://bank.example',
+          sfin_url: 'https://sf.bank.example',
+        },
+      ],
+      accounts: [
+        {
+          id: 'acc-1',
+          name: 'Checking',
+          conn_id: 'c-9',
+          currency: 'USD',
+          balance: '250.42',
+          'available-balance': '240.00',
+          'balance-date': 1760000000,
+          transactions: [{ id: 't1', posted: 1759000000, amount: '-10.10', description: 'Cafe' }],
+        },
+      ],
+    });
     expect(set.connections).toEqual([
       {
         id: 'c-9',
@@ -131,17 +113,172 @@ describe('normalizeV2', () => {
   });
 });
 
+// One shared data set rendered through each wire shape: drift is structurally impossible.
+function v1Wire(data: {
+  id: string;
+  name: string;
+  balance: string;
+  txn: { id: string; posted: number; amount: string; description: string };
+}) {
+  return {
+    errors: ['shared warning'],
+    accounts: [
+      {
+        id: data.id,
+        name: data.name,
+        currency: 'USD',
+        balance: data.balance,
+        org: { domain: 'bank.example', name: 'Bank', 'sfin-url': 'https://sf.bank.example' },
+        transactions: [data.txn],
+      },
+    ],
+  };
+}
+
+function v2Wire(data: {
+  id: string;
+  name: string;
+  balance: string;
+  txn: { id: string; posted: number; amount: string; description: string };
+}) {
+  return {
+    errors: ['shared warning'],
+    errlist: [],
+    connections: [
+      { conn_id: 'c-1', name: 'Bank', org_id: 'bank.example', sfin_url: 'https://sf.bank.example' },
+    ],
+    accounts: [
+      {
+        id: data.id,
+        name: data.name,
+        conn_id: 'c-1',
+        currency: 'USD',
+        balance: data.balance,
+        transactions: [data.txn],
+      },
+    ],
+  };
+}
+
 describe('version symmetry', () => {
-  it('v1 and v2 renderings of the same data normalize to the same model', () => {
-    const v1 = normalizeV1(V1_WIRE);
-    const v2 = normalizeV2(V2_WIRE);
-    // Connection identity differs by design (synthesized vs server-supplied).
+  it('the same data through both wire shapes yields identical models', () => {
+    const data = {
+      id: 'acc-1',
+      name: 'Checking',
+      balance: '250.4200000000000000001',
+      txn: { id: 't1', posted: 1759000000, amount: '-10.10', description: 'Cafe' },
+    };
+    const v1 = normalizeV1(v1Wire(data));
+    const v2 = normalizeV2(v2Wire(data));
+    expect(v1.errors).toEqual(v2.errors);
+    // Connection linkage is the one by-design difference (synthesized vs server id).
+    const strip = (set: typeof v1) => set.accounts.map(({ connectionId: _c, ...rest }) => rest);
+    expect(strip(v1)).toEqual(strip(v2));
     expect(v1.accounts[0]!.connectionId).toBe(v1.connections[0]!.id);
-    expect(v1.accounts[0]!.balance).toBe(v2.accounts[0]!.balance);
-    expect(v1.accounts[0]!.transactions).toEqual(v2.accounts[0]!.transactions);
-    expect(v1.connections[0]!.name).toBe(v2.connections[0]!.name);
-    expect(v1.connections[0]!.sfinUrl).toBe(v2.connections[0]!.sfinUrl);
-    expect(typeof v1.accounts[0]!.balance).toBe('string');
+    expect(v2.accounts[0]!.connectionId).toBe('c-1');
+  });
+});
+
+describe('live-shaped data (recorded probes 2026-10-19)', () => {
+  it('accepts mcc: null on transactions in both wire shapes (null ≡ absent)', () => {
+    const account = (extra: Record<string, unknown>) => ({
+      id: 'a',
+      name: 'A',
+      currency: 'USD',
+      balance: '1.00',
+      transactions: [{ id: 't', posted: 1, amount: '1.00', description: 'd', ...extra }],
+    });
+    const v1 = normalizeV1({ accounts: [account({ mcc: null })] });
+    const v2 = normalizeV2({
+      connections: [{ conn_id: 'c', name: 'N', org_id: 'o', sfin_url: 'https://s' }],
+      accounts: [{ ...account({ mcc: null }), conn_id: 'c' }],
+    });
+    expect(v1.accounts[0]!.transactions[0]).not.toHaveProperty('mcc');
+    expect(v2.accounts[0]!.transactions[0]).not.toHaveProperty('mcc');
+  });
+
+  it('v1 also captures holdings and x-api-message (passthroughs are version-agnostic)', () => {
+    const set = normalizeV1({
+      'x-api-message': ['hint'],
+      accounts: [
+        { id: 'a', name: 'A', currency: 'USD', balance: '1.00', holdings: [{ symbol: 'AAPL' }] },
+      ],
+    });
+    expect(set.xApiMessage).toEqual(['hint']);
+    expect(set.accounts[0]!.holdings).toEqual([{ symbol: 'AAPL' }]);
+  });
+
+  it('malformed holdings entries never fail the account set; non-objects drop', () => {
+    const set = normalizeV2({
+      connections: [{ conn_id: 'c', name: 'N', org_id: 'o', sfin_url: 'https://s' }],
+      accounts: [
+        {
+          id: 'a',
+          name: 'A',
+          conn_id: 'c',
+          currency: 'USD',
+          balance: '1',
+          holdings: ['AAPL', { symbol: 'X' }],
+        },
+      ],
+    });
+    expect(set.accounts[0]!.holdings).toEqual([{ symbol: 'X' }]);
+  });
+
+  it('preserves unmodeled connection fields raw (org_name)', () => {
+    const set = normalizeV2({
+      connections: [
+        {
+          conn_id: 'c',
+          name: 'SimpleFIN Demo',
+          org_id: 'o',
+          sfin_url: 'https://s',
+          org_name: 'SimpleFIN Bridge',
+        },
+      ],
+      accounts: [],
+    });
+    expect(set.connections[0]).toMatchObject({ id: 'c', org_name: 'SimpleFIN Bridge' });
+  });
+});
+
+describe('error helpers leniency split (wire.ts)', () => {
+  it('keeps errlist msgs when only optional link fields are malformed', () => {
+    const set = normalizeV2({
+      errlist: [{ code: 'gen.x', msg: 'Keep me', conn_id: 5 }],
+      connections: [],
+      accounts: [],
+    });
+    expect(set.errors).toEqual(['Keep me']);
+    expect(set.errlist).toEqual([{ code: 'gen.x', msg: 'Keep me' }]);
+  });
+
+  it('deduplicates errors appearing in both legacy and errlist forms', () => {
+    const set = normalizeV1({
+      errors: ['x'],
+      errlist: [{ code: 'gen.api', msg: 'x' }],
+      accounts: [],
+    });
+    expect(set.errors).toEqual(['x']);
+  });
+
+  it('x-api-message keeps valid strings when the array is mixed', () => {
+    const set = normalizeV1({ accounts: [], 'x-api-message': ['a', 42] });
+    expect(set.xApiMessage).toEqual(['a']);
+  });
+
+  it('v2 payload errors/errlist are validated as strictly as v1', () => {
+    expect(() => normalizeV2({ connections: [], accounts: [], errors: 'oops' })).toThrow(
+      TransportError,
+    );
+    expect(() => normalizeV2({ connections: [], accounts: [], errors: ['x', 5] })).toThrow(
+      TransportError,
+    );
+    expect(() => normalizeV1({ accounts: [], errlist: 'junk' })).toThrow(TransportError);
+  });
+
+  it('errorPrefix: empty input stays empty; subcodes collapse', () => {
+    expect(errorPrefix('')).toBe('');
   });
 });
 

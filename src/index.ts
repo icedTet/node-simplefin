@@ -32,8 +32,7 @@ export type {
   WireConnectionV2,
   WireErrorEntry,
   WireOrganization,
-  WireTransactionV1,
-  WireTransactionV2,
+  WireTransactionBase,
 } from './types';
 export type { FetchLike } from './net';
 

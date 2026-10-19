@@ -3,72 +3,79 @@
 // on protocol version. Raw JSON enters here: typed model out, or a typed error.
 
 import { TransportError } from './errors';
+import { projectErrlist, projectXApiMessage } from './wire';
 import type {
   Account,
   AccountSet,
   Connection,
   Holding,
-  ProtocolError,
   Transaction,
   WireAccountSetV1,
+  WireAccountV1,
   WireAccountSetV2,
-  WireErrorEntry,
+  WireAccountV2,
+  WireConnectionV2,
   WireOrganization,
-  WireTransactionV1,
-  WireTransactionV2,
+  WireTransactionBase,
 } from './types';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function optional(value: unknown, type: 'string' | 'number' | 'boolean' | 'object'): boolean {
-  if (value === undefined) return true;
-  return type === 'object' ? isRecord(value) : typeof value === type;
-}
-
 function optionalString(value: unknown): boolean {
   return value === undefined || typeof value === 'string';
 }
 
+/** Only for the observed-null transaction extras (mcc); payload fields stay strict. */
+function optionalStringOrNull(value: unknown): boolean {
+  return value === undefined || value === null || typeof value === 'string';
+}
+
+function optionalNumber(value: unknown): boolean {
+  return value === undefined || typeof value === 'number';
+}
+
+function optionalRecord(value: unknown): boolean {
+  return value === undefined || isRecord(value);
+}
+
 /** `prefix.[subcode]` → `prefix.`; unknown subcodes behave like the naked prefix
- *  (protocol v2 guidance). Consumers should classify with this, not `code`. */
+ *  (protocol v2 guidance). Empty input stays empty (matches nothing). */
 export function errorPrefix(code: string): string {
+  if (!code) return code;
   const dot = code.indexOf('.');
   return dot === -1 ? `${code}.` : code.slice(0, dot + 1);
 }
 
-export function isWireErrorEntry(value: unknown): value is WireErrorEntry {
+function str(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+// ── shared wire checks ───────────────────────────────────────────────────────────
+
+function isWireTransactionBase(value: unknown): value is WireTransactionBase {
   return (
     isRecord(value) &&
-    typeof value.code === 'string' &&
-    typeof value.msg === 'string' &&
-    optionalString(value.conn_id) &&
-    optionalString(value.account_id)
+    typeof value.id === 'string' &&
+    typeof value.posted === 'number' &&
+    typeof value.amount === 'string' &&
+    typeof value.description === 'string' &&
+    optionalNumber(value.transacted_at) &&
+    (value.pending === undefined || typeof value.pending === 'boolean') &&
+    optionalRecord(value.extra) &&
+    // Live-bridge extras (payee/memo/mcc): version-agnostic, null-observed on mcc
+    // (recorded live probe 2026-10-19; see maps/external.md) — null means absent.
+    optionalStringOrNull(value.payee) &&
+    optionalStringOrNull(value.memo) &&
+    optionalStringOrNull(value.mcc)
   );
 }
 
-export function projectErrlist(list: unknown): ProtocolError[] {
-  if (!Array.isArray(list)) return [];
-  const out: ProtocolError[] = [];
-  for (const entry of list) {
-    if (!isWireErrorEntry(entry)) continue;
-    out.push({
-      code: entry.code,
-      msg: entry.msg,
-      ...(entry.conn_id !== undefined ? { connId: entry.conn_id } : {}),
-      ...(entry.account_id !== undefined ? { accountId: entry.account_id } : {}),
-    });
-  }
-  return out;
-}
-
-function projectXApiMessage(value: unknown): readonly string[] | undefined {
-  if (!Array.isArray(value) || !value.every((v) => typeof v === 'string')) return undefined;
-  return value;
-}
-
-function normalizeTransaction(txn: WireTransactionV1 | WireTransactionV2): Transaction {
+function normalizeTransaction(txn: WireTransactionBase): Transaction {
+  const payee = str(txn.payee);
+  const memo = str(txn.memo);
+  const mcc = str(txn.mcc);
   return {
     id: txn.id,
     posted: txn.posted,
@@ -76,16 +83,49 @@ function normalizeTransaction(txn: WireTransactionV1 | WireTransactionV2): Trans
     description: txn.description,
     ...(txn.transacted_at !== undefined ? { transactedAt: txn.transacted_at } : {}),
     pending: txn.pending === true,
-    ...('payee' in txn && typeof txn.payee === 'string' ? { payee: txn.payee } : {}),
-    ...('memo' in txn && typeof txn.memo === 'string' ? { memo: txn.memo } : {}),
-    ...('mcc' in txn && typeof txn.mcc === 'string' ? { mcc: txn.mcc } : {}),
+    ...(payee !== undefined ? { payee } : {}),
+    ...(memo !== undefined ? { memo } : {}),
+    ...(mcc !== undefined ? { mcc } : {}),
     ...(txn.extra !== undefined ? { extra: txn.extra } : {}),
   };
 }
 
+/** Defensive capture only: the holdings schema is explicitly not guaranteed
+ *  (external.md), so nothing here may fail the account set. Non-objects are dropped. */
 function normalizeHoldings(value: unknown): readonly Holding[] | undefined {
   if (!Array.isArray(value)) return undefined;
   return value.filter(isRecord);
+}
+
+function normalizeAccountCore(
+  account: WireAccountV1 | WireAccountV2,
+): Omit<Account, 'connectionId'> {
+  const holdings = normalizeHoldings(account.holdings);
+  return {
+    id: account.id,
+    name: account.name,
+    currency: account.currency,
+    balance: account.balance,
+    ...(account['available-balance'] !== undefined
+      ? { availableBalance: account['available-balance'] }
+      : {}),
+    ...(account['balance-date'] !== undefined ? { balanceDate: account['balance-date'] } : {}),
+    transactions: (account.transactions ?? []).map(normalizeTransaction),
+    ...(holdings !== undefined ? { holdings } : {}),
+    ...(account.extra !== undefined ? { extra: account.extra } : {}),
+  };
+}
+
+function isStringArrayOrAbsent(value: unknown): boolean {
+  return value === undefined || (Array.isArray(value) && value.every((e) => typeof e === 'string'));
+}
+
+function isErrlistShapeOrAbsent(value: unknown): boolean {
+  return (
+    value === undefined ||
+    (Array.isArray(value) &&
+      value.every((e) => isRecord(e) && typeof e.code === 'string' && typeof e.msg === 'string'))
+  );
 }
 
 // ── v1 ───────────────────────────────────────────────────────────────────────────
@@ -101,7 +141,7 @@ function isWireOrg(value: unknown): value is WireOrganization {
   );
 }
 
-function isWireAccountV1(value: unknown): boolean {
+function isWireAccountV1(value: unknown): value is WireAccountV1 {
   return (
     isRecord(value) &&
     typeof value.id === 'string' &&
@@ -109,36 +149,21 @@ function isWireAccountV1(value: unknown): boolean {
     typeof value.currency === 'string' &&
     typeof value.balance === 'string' &&
     optionalString(value['available-balance']) &&
-    optional(value['balance-date'], 'number') &&
-    optional(value.extra, 'object') &&
+    optionalNumber(value['balance-date']) &&
+    optionalRecord(value.extra) &&
     (value.org === undefined || isWireOrg(value.org)) &&
     (value.transactions === undefined ||
-      (Array.isArray(value.transactions) && value.transactions.every(isWireTransactionV1)))
-  );
-}
-
-function isWireTransactionV1(value: unknown): boolean {
-  return (
-    isRecord(value) &&
-    typeof value.id === 'string' &&
-    typeof value.posted === 'number' &&
-    typeof value.amount === 'string' &&
-    typeof value.description === 'string' &&
-    optional(value.transacted_at, 'number') &&
-    optional(value.pending, 'boolean') &&
-    optional(value.extra, 'object')
+      (Array.isArray(value.transactions) && value.transactions.every(isWireTransactionBase)))
   );
 }
 
 function isWireAccountSetV1(value: unknown): value is WireAccountSetV1 {
   if (!isRecord(value) || !Array.isArray(value.accounts)) return false;
-  if (
-    value.errors !== undefined &&
-    !(Array.isArray(value.errors) && value.errors.every((e) => typeof e === 'string'))
-  ) {
-    return false;
-  }
-  return value.accounts.every(isWireAccountV1);
+  return (
+    isStringArrayOrAbsent(value.errors) &&
+    isErrlistShapeOrAbsent(value.errlist) &&
+    value.accounts.every(isWireAccountV1)
+  );
 }
 
 function orgToConnection(
@@ -162,41 +187,37 @@ function orgToConnection(
 }
 
 /** v1 → normalized. Connection identities are synthesized per unique org; legacy
- *  `errors` pass through and a defensive `errlist` projection covers bridges that mix. */
+ *  `errors` and a defensive `errlist` surface in `errors`; live passthroughs
+ *  (holdings, x-api-message) are captured like on v2. */
 export function normalizeV1(input: unknown): AccountSet {
   if (!isWireAccountSetV1(input)) {
     throw new TransportError('Invalid accounts response: not a v1 AccountSet payload');
   }
-  const wire = input;
   const connections = new Map<string, Connection>();
-  const accounts: Account[] = wire.accounts.map((account) => {
+  const accounts: Account[] = input.accounts.map((account) => {
     const connection = orgToConnection(account.org, connections);
     return {
-      id: account.id,
-      name: account.name,
-      currency: account.currency,
-      balance: account.balance,
-      ...(account['available-balance'] !== undefined
-        ? { availableBalance: account['available-balance'] }
-        : {}),
-      ...(account['balance-date'] !== undefined ? { balanceDate: account['balance-date'] } : {}),
-      transactions: (account.transactions ?? []).map(normalizeTransaction),
+      ...normalizeAccountCore(account),
       ...(connection ? { connectionId: connection.id } : {}),
-      ...(account.extra !== undefined ? { extra: account.extra } : {}),
     };
   });
-  const errlist = projectErrlist(wire.errlist);
+  const errlist = projectErrlist(input.errlist);
   return {
-    errors: [...(wire.errors ?? []), ...errlist.map((e) => e.msg)],
+    errors: [...(input.errors ?? []), ...errlist.map((e) => e.msg)].filter(
+      (value, index, all) => all.indexOf(value) === index,
+    ),
     errlist,
     connections: [...connections.values()],
     accounts,
+    ...(projectXApiMessage(input['x-api-message']) !== undefined
+      ? { xApiMessage: projectXApiMessage(input['x-api-message']) }
+      : {}),
   };
 }
 
 // ── v2 ───────────────────────────────────────────────────────────────────────────
 
-function isWireConnectionV2(value: unknown): boolean {
+function isWireConnectionV2(value: unknown): value is WireConnectionV2 {
   return (
     isRecord(value) &&
     typeof value.conn_id === 'string' &&
@@ -207,7 +228,7 @@ function isWireConnectionV2(value: unknown): boolean {
   );
 }
 
-function isWireAccountV2(value: unknown): boolean {
+function isWireAccountV2(value: unknown): value is WireAccountV2 {
   return (
     isRecord(value) &&
     typeof value.id === 'string' &&
@@ -216,21 +237,12 @@ function isWireAccountV2(value: unknown): boolean {
     typeof value.currency === 'string' &&
     typeof value.balance === 'string' &&
     optionalString(value['available-balance']) &&
-    optional(value['balance-date'], 'number') &&
-    optional(value.extra, 'object') &&
+    optionalNumber(value['balance-date']) &&
+    optionalRecord(value.extra) &&
     (value.transactions === undefined ||
-      (Array.isArray(value.transactions) && value.transactions.every(isWireTransactionV2))) &&
-    (value.holdings === undefined ||
-      (Array.isArray(value.holdings) && value.holdings.every(isRecord)))
-  );
-}
-
-function isWireTransactionV2(value: unknown): boolean {
-  return (
-    isWireTransactionV1(value) &&
-    optionalString((value as Record<string, unknown>).payee) &&
-    optionalString((value as Record<string, unknown>).memo) &&
-    optionalString((value as Record<string, unknown>).mcc)
+      (Array.isArray(value.transactions) && value.transactions.every(isWireTransactionBase)))
+    // holdings deliberately unchecked: schema not guaranteed (external.md); captured
+    // defensively so a weird entry can never kill the whole account set.
   );
 }
 
@@ -238,48 +250,43 @@ function isWireAccountSetV2(value: unknown): value is WireAccountSetV2 {
   if (!isRecord(value) || !Array.isArray(value.connections) || !Array.isArray(value.accounts)) {
     return false;
   }
-  return value.connections.every(isWireConnectionV2) && value.accounts.every(isWireAccountV2);
+  return (
+    isStringArrayOrAbsent(value.errors) &&
+    isErrlistShapeOrAbsent(value.errlist) &&
+    value.connections.every(isWireConnectionV2) &&
+    value.accounts.every(isWireAccountV2)
+  );
 }
 
-/** v2 → normalized; same AccountSet shape as {@link normalizeV1}. */
+/** v2 → normalized; same AccountSet shape as {@link normalizeV1}. Connection extras
+ *  beyond the typed fields (e.g. `org_name`) pass through raw. */
 export function normalizeV2(input: unknown): AccountSet {
   if (!isWireAccountSetV2(input)) {
     throw new TransportError('Invalid accounts response: not a v2 AccountSet payload');
   }
-  const wire = input;
-  const connections: Connection[] = wire.connections.map((c) => ({
-    id: c.conn_id,
-    name: c.name,
-    sfinUrl: c.sfin_url,
-    orgId: c.org_id,
-    ...(c.org_url !== undefined ? { url: c.org_url } : {}),
-  }));
-  const knownConnections = new Set(connections.map((c) => c.id));
-  const accounts: Account[] = wire.accounts.map((account) => {
-    const holdings = normalizeHoldings(account.holdings);
+  const connections: Connection[] = input.connections.map((c) => {
+    // Consume the known wire keys into typed fields; unknown extras pass through raw.
+    const { conn_id, name, org_id, sfin_url, org_url, ...rest } = c;
     return {
-      id: account.id,
-      name: account.name,
-      currency: account.currency,
-      balance: account.balance,
-      ...(account['available-balance'] !== undefined
-        ? { availableBalance: account['available-balance'] }
-        : {}),
-      ...(account['balance-date'] !== undefined ? { balanceDate: account['balance-date'] } : {}),
-      transactions: (account.transactions ?? []).map(normalizeTransaction),
-      ...(holdings !== undefined ? { holdings } : {}),
-      ...(knownConnections.has(account.conn_id) ? { connectionId: account.conn_id } : {}),
-      ...(account.extra !== undefined ? { extra: account.extra } : {}),
+      ...rest,
+      id: conn_id,
+      name,
+      sfinUrl: sfin_url,
+      orgId: org_id,
+      ...(org_url !== undefined ? { url: org_url } : {}),
     };
   });
-  const errlist = projectErrlist(wire.errlist);
-  const legacy =
-    Array.isArray(wire.errors) && wire.errors.every((e) => typeof e === 'string')
-      ? wire.errors
-      : [];
-  const xApiMessage = projectXApiMessage(wire['x-api-message']);
+  const knownConnections = new Set(connections.map((c) => c.id));
+  const accounts: Account[] = input.accounts.map((account) => ({
+    ...normalizeAccountCore(account),
+    ...(knownConnections.has(account.conn_id) ? { connectionId: account.conn_id } : {}),
+  }));
+  const errlist = projectErrlist(input.errlist);
+  const xApiMessage = projectXApiMessage(input['x-api-message']);
   return {
-    errors: [...legacy, ...errlist.map((e) => e.msg)],
+    errors: [...(input.errors ?? []), ...errlist.map((e) => e.msg)].filter(
+      (value, index, all) => all.indexOf(value) === index,
+    ),
     errlist,
     connections,
     accounts,

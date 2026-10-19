@@ -2,17 +2,11 @@
 // Wire types (protocol shapes) and the public normalized model. Amounts are decimal
 // strings end to end — never parse to float (AGENTS.md). Protocol facts: maps/external.md.
 
-// ── v1 wire (protocol-v1.html; the live bridge default) ─────────────────────────
+// ── wire extras shared by v1 and v2 (live bridge, version-agnostic) ─────────────
 
-export interface WireOrganization {
-  domain?: string;
-  name?: string;
-  'sfin-url'?: string;
-  url?: string;
-  id?: string;
-}
-
-export interface WireTransactionV1 {
+/** Wire transaction fields common to v1/v2 plus the undocumented-but-live extras
+ *  (payee/memo/mcc — external.md; `mcc` observed `null` live, null ≡ absent). */
+export interface WireTransactionBase {
   id: string;
   /** Unix seconds; 0 when pending (fall back to transacted_at). */
   posted: number;
@@ -22,6 +16,19 @@ export interface WireTransactionV1 {
   transacted_at?: number;
   pending?: boolean;
   extra?: Record<string, unknown>;
+  payee?: string | null;
+  memo?: string | null;
+  mcc?: string | null;
+}
+
+// ── v1 wire (protocol-v1.html; the live bridge default) ──────────────────────────
+
+export interface WireOrganization {
+  domain?: string;
+  name?: string;
+  'sfin-url'?: string;
+  url?: string;
+  id?: string;
 }
 
 export interface WireAccountV1 {
@@ -32,15 +39,19 @@ export interface WireAccountV1 {
   balance: string;
   'available-balance'?: string;
   'balance-date'?: number;
-  transactions?: WireTransactionV1[];
+  transactions?: WireTransactionBase[];
   org?: WireOrganization;
+  /** Live v1 carries holdings too (recorded probe); captured defensively. */
+  holdings?: unknown;
   extra?: Record<string, unknown>;
 }
 
 export interface WireAccountSetV1 {
   errors?: string[];
-  errlist?: WireErrorEntry[];
+  errlist?: unknown;
   accounts: WireAccountV1[];
+  'x-api-message'?: unknown;
+  [key: string]: unknown;
 }
 
 // ── v2 wire (protocol.html v2.0.0-draft, opt-in via version=2) ──────────────────
@@ -61,13 +72,6 @@ export interface WireConnectionV2 {
   [key: string]: unknown;
 }
 
-export interface WireTransactionV2 extends WireTransactionV1 {
-  /** Live-bridge extras, not in the written spec (external.md): treat as optional. */
-  payee?: string;
-  memo?: string;
-  mcc?: string;
-}
-
 export interface WireAccountV2 {
   id: string;
   name: string;
@@ -76,31 +80,35 @@ export interface WireAccountV2 {
   balance: string;
   'available-balance'?: string;
   'balance-date'?: number;
-  transactions?: WireTransactionV2[];
+  transactions?: WireTransactionBase[];
   /** Observed live, schema explicitly not guaranteed (bridge-issues #43). */
-  holdings?: Holding[];
+  holdings?: unknown;
   extra?: Record<string, unknown>;
 }
 
 export interface WireAccountSetV2 {
-  errlist?: WireErrorEntry[];
+  errlist?: unknown;
   errors?: string[];
   connections: WireConnectionV2[];
   accounts: WireAccountV2[];
+  'x-api-message'?: unknown;
   [key: string]: unknown;
 }
 
-// ── public normalized model (version-independent) ───────────────────────────────
+// ── public normalized model (version-independent) ────────────────────────────────
 
 export interface Connection {
   /** v2: server-supplied conn_id. v1: synthesized `conn-N`, per response only. */
   readonly id: string;
   readonly name: string;
+  /** v1-era org field; v2 servers use orgId. Consumers should tolerate absence. */
   readonly domain?: string;
   readonly url?: string;
   readonly sfinUrl: string;
   /** v2 organization id (unique per server, not globally). */
   readonly orgId?: string;
+  /** v2 passthrough: unmodeled server fields (e.g. org_name) survive raw. */
+  readonly [key: string]: unknown;
 }
 
 export interface Transaction {
@@ -118,8 +126,8 @@ export interface Transaction {
   readonly extra?: Record<string, unknown>;
 }
 
-/** Schema explicitly not guaranteed by the bridge; typed accessors for observed
- *  fields, unknown keys preserved. */
+/** Schema explicitly not guaranteed by the bridge; typed accessors for OBSERVED
+ *  fields are convenience only — the SDK does not validate them (normalize.md). */
 export interface Holding {
   [key: string]: unknown;
   created?: number;
@@ -155,9 +163,10 @@ export interface Account {
 }
 
 export interface AccountSet {
-  /** Display strings from legacy `errors` + projected errlist msgs; sanitize before render. */
+  /** Display strings from legacy `errors` + projected errlist msgs, deduplicated;
+   *  sanitize before rendering. */
   readonly errors: readonly string[];
-  /** Structured v2-style errors when present (also defensively on v1 responses). */
+  /** Structured protocol errors when present (both versions; defensive on v1). */
   readonly errlist: readonly ProtocolError[];
   readonly connections: readonly Connection[];
   readonly accounts: readonly Account[];
