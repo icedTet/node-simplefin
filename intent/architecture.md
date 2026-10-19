@@ -20,7 +20,8 @@ credentials, then polls `{access}/accounts`. Facts and quirks: [maps/external.md
 - **Isomorphic, zero runtime deps.** Only global `fetch` / `URL` / base64 via a bundled
   polyfill-safe helper. `src/` is typechecked as its own program (`tsconfig.src.json`,
   `types: []`) so Node globals and `node:` module imports fail there, with a lint
-  backstop (`no-restricted-imports` on `src/**`); `lib` includes DOM so browser globals
+  backstop (`no-restricted-imports` over all builtin modules + `no-restricted-globals` on
+  `src/**`); `lib` includes DOM so browser globals
   are allowed. Runs in Node ≥22, Bun, Deno, browsers (the bridge sends permissive CORS
   headers; see external.md).
 - **Amounts are strings.** Balances/amounts are decimal strings end to end; the SDK never
@@ -28,7 +29,8 @@ credentials, then polls `{access}/accounts`. Facts and quirks: [maps/external.md
 - **v1 default, v2 opt-in, normalized outward.** Requests default to the bridge's v1
   shape; `version: 2` opts in. A normalize layer presents one shape to callers
   (`connections` model) so no caller branches on protocol version.
-- **Errors are typed outcomes, not strings.** `403` **with a protocol error body** ⇒
+- **Errors are typed outcomes, not strings.** `403` **with a protocol response body** (`text/plain`
+  refusal on claim, `errors`/`errlist` on accounts) ⇒
   `AccessRevokedError`/`ClaimError` (never 401 in this protocol); a `403` lacking one (e.g.
   a Cloudflare edge block) surfaces as a distinct transport error, not a false revocation.
   `402` ⇒ `PaymentRequiredError`, `429` ⇒ `RateLimitError`,

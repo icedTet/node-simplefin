@@ -88,4 +88,5 @@ limited; 5xx server. Live + dev guide + sure client.
 
 HTTPS-only (reject http: URLs); never follow insecure redirects; store access URLs as
 securely as financial data; display `errors`/`errlist`/`msg` strings only sanitized; on
-claim 403, tell the user the token may be compromised and to disable/recreate it.
+claim 403 **with the protocol's `text/plain` refusal body** (not an edge/UA 403), tell the
+user the token may be compromised and to disable/recreate it.
