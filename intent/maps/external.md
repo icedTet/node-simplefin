@@ -54,7 +54,7 @@ return 404 with no cursor/status headers (don't implement them).
 | `amount` numeric **string**, positive = deposit; `posted` unix int, **0 when pending**; `available-balance` optional; custom currency = `currency` is a URL → GET `{name,abbr}` | same fields | spec v1/v2 |
 
 Undocumented-but-live fields (capture as optional passthrough on BOTH versions, don't
-depend): `holdings[]` (present on live v1 too; bridge-issues #43: "don't depend on its
+depend): `holdings[]` (present on live v1 too; bridge-issues#43: "don't depend on its
 schema"), transaction `payee`, `memo`, `mcc`, `transacted_at`, `extra`, top-level
 `x-api-message: string[]` (present without `start-date`), connection `org_name`.
 **Live census (v1 and v2, demo, re-measured 2026-10-19): `mcc` is the only key ever
@@ -77,6 +77,13 @@ limited; 5xx server. Live + dev guide + sure client.
   requests have their own quota. Provenance: `/info/developers`.
 - **90-day max date window**; exceeding is capped server-side with a `gen.api` errlist
   entry. Live probe.
+- **45-day recommended range**: windows >45d (≤90d) return 200 + `gen.api` "exceeds
+  recommended range of 45 days. In the future, this may be capped." — SDK window geometry
+  follows this, not the hard cap. Live probes 2026-10-19 (89d warns, 20d clean).
+- Demo claim tokens on the developer page regenerate **on each page load** and are
+  single-use (consumed → 403; reload → fresh). Live (stage-3, 2026-10-19: two runs).
+- Identity stability (merge/dedupe keys rely on it): transaction `id` unique **within an
+  account** (may repeat across accounts); account ids stable per server. Spec v1 §transactions.
 - Polling model: daily GET with ~**5-day overlapping windows**, diff by txn `id`;
   schedule at a **random minute** (traffic spikes on the hour). Dev guide.
 - `bridge.simplefin.org` currently **302-redirects everything** (incl. pathed API POSTs) to
