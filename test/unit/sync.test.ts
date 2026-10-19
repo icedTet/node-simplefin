@@ -98,7 +98,10 @@ describe('collectAccounts', () => {
     ]);
     const merged = await collectAccounts(client, { startDate: start, endDate: end });
     expect(calls.length).toBeGreaterThan(1); // 180d at default 45d/5d geometry
-    expect(calls[0]!.endDate).toBeLessThanOrEqual(calls[1]!.startDate + 95 * DAY);
+    for (let i = 1; i < calls.length; i++) {
+      // exact 5-day overlap between consecutive windows (replaces vacuous 95d bound)
+      expect(calls[i]!.startDate).toBe(calls[i - 1]!.endDate - 5 * DAY);
+    }
     const account = merged.accounts[0]!;
     expect(account.balance).toBe('7.00');
     expect(account.transactions.map((x) => x.id)).toEqual(['x', 'y', 'z']); // posted-sorted
@@ -148,6 +151,29 @@ describe('collectAccounts', () => {
       /maxRequests/,
     );
     expect(calls).toHaveLength(0);
+  });
+
+  it('defaults endDate to now when omitted', async () => {
+    const { calls, client } = fakeClient([() => empty]);
+    const before = Math.floor(Date.now() / 1000);
+    await collectAccounts(client, { startDate: before - 2 * DAY });
+    expect(calls[0]!.endDate).toBeGreaterThanOrEqual(before);
+  });
+
+  it('posted-ties fall back to id order', async () => {
+    const t = (id: string) => ({ id, posted: 7, amount: '1.00', description: 'd', pending: false });
+    const { client } = fakeClient([
+      () =>
+        setWith({
+          id: 'a1',
+          name: 'A',
+          currency: 'USD',
+          balance: '1.00',
+          transactions: [t('z'), t('x')],
+        }),
+    ]);
+    const merged = await collectAccounts(client, { startDate: 0, endDate: DAY });
+    expect(merged.accounts[0]!.transactions.map((x) => x.id)).toEqual(['x', 'z']);
   });
 
   it('accepts Date objects for both bounds', async () => {
