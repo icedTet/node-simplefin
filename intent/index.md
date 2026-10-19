@@ -21,6 +21,7 @@ Read this catalog first, then drill into the pages relevant to your task.
 | [modules/client.md](modules/client.md) | SimplefinClient orchestration | current |
 | [modules/normalize.md](modules/normalize.md) | Version-independent public model | current |
 | [modules/wire.md](modules/wire.md) | Shared error/passthrough helpers (lenient display vs strict projection) | current |
+| [modules/sync.md](modules/sync.md) | Date-window helpers and quota-safe collection | current |
 | [modules/types.md](modules/types.md) | Wire ↔ public type contract | current |
 | [modules/errors.md](modules/errors.md) | Typed error outcomes | current |
 

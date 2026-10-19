@@ -6,6 +6,13 @@ export { SimplefinClient, type GetAccountsOptions, type ClientOptions } from './
 export { parseAccessUrl, type AccessUrl } from './access-url';
 export { errorPrefix } from './normalize';
 export {
+  collectAccounts,
+  splitWindows,
+  type CollectOptions,
+  type DateWindow,
+  type WindowOptions,
+} from './sync';
+export {
   SimplefinError,
   InvalidTokenError,
   InvalidAccessUrlError,

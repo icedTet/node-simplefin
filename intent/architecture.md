@@ -54,7 +54,7 @@ credentials, then polls `{access}/accounts`. Facts and quirks: [maps/external.md
 | `src/wire.ts` | shared error/passthrough helpers (display vs projection) | 2 ✓ |
 | `src/types.ts` | wire + normalized models | 1 ✓ (v2 shapes Stage 2) |
 | `src/normalize.ts` | wire→public; v1 org→connections; v2 errlist/prefix fallback | 1 ✓, v2 2 ✓ |
-| `src/sync.ts` | date-window helpers (90-day cap, 5-day overlap) | 3 |
+| `src/sync.ts` | date-window helpers (90-day cap, 5-day overlap) | 3 ✓ |
 
 ## Build & toolchain
 

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
@@ -62,6 +62,19 @@ describe('package wiring', () => {
       root.require.types,
     ]) {
       expect(existsSync(fileURLToPath(new URL(target, pkgUrl))), `${target} missing`).toBe(true);
+    }
+  });
+});
+
+describe('fixtures provenance', () => {
+  it('every recorded fixture carries a meta sidecar', () => {
+    const dir = new URL('../fixtures/', import.meta.url);
+    const files = readdirSync(fileURLToPath(dir));
+    for (const file of files.filter((f) => f.endsWith('.json') && !f.endsWith('.meta.json'))) {
+      expect(
+        existsSync(new URL(file.replace('.json', '.meta.json'), dir)),
+        `${file} lacks meta`,
+      ).toBe(true);
     }
   });
 });

@@ -26,6 +26,7 @@ orchestration only, all mechanics live in [[modules/http]]/[[modules/normalize]]
 
 ## Dependencies
 Depends on: [[modules/http]], [[modules/normalize]], [[modules/access-url]], [[modules/types]].
+Depended on by: [[modules/sync]] (composition, type-only import).
 
 ## Constraints
 - No retry logic here (quota discipline is a consumer/Stage-3 concern; silent retries would
@@ -36,7 +37,7 @@ Depends on: [[modules/http]], [[modules/normalize]], [[modules/access-url]], [[m
 `src/client.ts`
 
 ## Known gaps
-- Rate-limit budgeting helper: Stage 3 (`src/sync.ts`).
+- None open; windowing/budget composition lives in [[modules/sync]].
 - Explicit `version=1` pinning is an SDK hedge against the documented default flip (v1
   sunset ≥1y after 2026-03-19, GH discussion #33), with server tolerance recorded in
   external.md (live probes: `1`/unknown values → v1 byte-identical to omitted). Revisit

@@ -40,7 +40,7 @@ wiki (subagent) → loop until green → commit, push, tag `stage-N`, CI green b
 | 0 | Toolchain, CI, wiki bootstrap | lint/typecheck/test/build/smoke/pack green locally; CI workflow committed |
 | 1 | claim + access-url + http + client (v1) + errors | unit tests incl. all error mappings; scenario tests below pass |
 | 2 | v2 + normalize + passthrough fields | version-normalization invariants tested — landed, gates pending |
-| 3 | full suite, integration opt-in, sync helpers | coverage ≥90%; integration run documented in this page incl. live edge/UA-403 discrimination re-verify (modules/claim.md) |
+| 3 | full suite, integration opt-in, sync helpers | ✓ 92 unit + fixtures + live integration demonstrated 2026-10-19; edge/UA-403 live re-verify deferred to a private-token run (documented in testing.md) |
 | 4 | README/docs/CHANGELOG, publish config | `npm pack` clean; docs match API |
 
 ## Contract — behavioral scenarios
@@ -72,8 +72,11 @@ wiki (subagent) → loop until green → commit, push, tag `stage-N`, CI green b
     either after a known-safe host rewrite (bridge→beta) or via the final-URL origin check.
   - Given a 200 payload that is not a v1 AccountSet (shape or entry types wrong), Then
     `TransportError`, not a crash deep in mapping.
-- **sync (stage 3)**
-  - Given a range >90 days, Then it is split into ≤90-day windows with ≥5-day overlaps.
+- **sync (stage 3) ✓**
+  - Given a range >90 days, Then `splitWindows` yields ≤90-day windows with ≥5-day
+    overlaps, gapless and chronological.
+  - Given overlapping windows return the same transaction, Then `collectAccounts`
+    merges it once; later windows win per account/txn id; fetches are sequential.
 
 ## Definition of Done (v0.1.0 ship)
 
@@ -103,4 +106,6 @@ with `provenance: declared`, README quickstart copy-pastable.
 ## [2026-10-19] review | Stage-2 round 2: A NEW-1..5 + C W1..6, all verified by direct grep/inspection (claims cross-corroborated between reviewers; no separate B round deemed necessary at this scale). Fixed: unified display-array helper, errlist presence-gate relaxation, citations/provenance, symmetry-adjacent tests, wiki edges/maps/log accuracy. Process note (W6): round-1 src/test fixes landed without same-commit doc edits; docs followed one commit later in-session — will inline next stage.
 
 ## [2026-10-19] review | Stage-2 round 3: Gate A APPROVE (items closed; live SDK v1+v2 demo check passes). Gate C final 2 doc nits fixed here (log phantom touched-item; types.md back-edges for wire/errors type-only imports). Stage 2 green.
+
+## [2026-10-19] implement | Stage 3 landed: sync helpers, fixtures harness, integration suite green live once (see testing.md for the two deferred re-verify promises).
 

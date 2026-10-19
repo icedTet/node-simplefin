@@ -1,0 +1,5 @@
+{
+  "recorded": "2026-10-19T21:48:28.351Z",
+  "url": "https://demo:demo@beta-bridge.simplefin.org/simplefin/accounts?version=2&start-date=1788990508",
+  "via": "scripts/record-fixtures.mjs"
+}
