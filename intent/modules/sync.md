@@ -21,8 +21,8 @@ exactly that at 95d).
   `start`; invalid geometry throws `RangeError` before any request. Default follows the
   server's 45-day *recommended* range (external.md), not the 90-day hard cap.
 - `collectAccounts(client, {startDate, endDate?, …windows, maxRequests?})` —
-  **startDate is required** (an unbounded default would silently spend ~231 windows of
-  quota); endDate defaults to now. More windows than `maxRequests` (default 24 — the
+  **startDate is required** (an unbounded default would silently spend ~519 windows —
+  many times the daily quota); endDate defaults to now. More windows than `maxRequests` (default 24 — the
   daily budget) throws `RangeError` before fetching. Sequential fetches (never parallel).
 - Merge (identity keys per external.md): accounts by `id`, later fields win; transactions
   by (`account id`, `txn id`), later **value** wins, output **sorted by `posted` asc

@@ -75,6 +75,9 @@ limited; 5xx server. Live + dev guide + sure client.
 - **≤24 requests/day/access token** expected; over-quota → warnings in `errors`/`errlist`;
   abuse → **token disabled server-side**. Quotas replenish through the day; per-account
   requests have their own quota. Provenance: `/info/developers`.
+- Omitting `start-date` yields a **server-chosen recent default** (demo fixture shows
+  ~3 weeks) — `getAccounts({})` is valid for balances/latest sweeps; spec v1: "server
+  chooses the default". Fixture 2026-10-19.
 - **90-day max date window**; exceeding is capped server-side with a `gen.api` errlist
   entry. Live probe.
 - **45-day recommended range**: windows >45d (≤90d) return 200 + `gen.api` "exceeds
