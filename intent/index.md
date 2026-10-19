@@ -17,6 +17,8 @@ Read this catalog first, then drill into the pages relevant to your task.
 
 ## Rules
 
+- `index.md` and `log.md` are bookkeeping; all other pages carry the frontmatter schema.
+
 - Every behavior/structure change updates the touched pages in the same commit.
 - `maps/external.md` is the single source of protocol facts; code claims must trace to a
   row there (with provenance).

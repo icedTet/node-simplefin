@@ -3,7 +3,7 @@ type: architecture
 status: in-progress
 provenance: mixed
 updated: 2026-10-19
-code: [package.json, tsup.config.ts, src/index.ts]
+code: [package.json, tsup.config.ts, tsconfig.src.json, eslint.config.js, src/index.ts]
 ---
 
 # Architecture
@@ -28,8 +28,10 @@ credentials, then polls `{access}/accounts`. Facts and quirks: [maps/external.md
 - **v1 default, v2 opt-in, normalized outward.** Requests default to the bridge's v1
   shape; `version: 2` opts in. A normalize layer presents one shape to callers
   (`connections` model) so no caller branches on protocol version.
-- **Errors are typed outcomes, not strings.** `403` ⇒ `AccessRevokedError`/`ClaimError`
-  (never 401 in this protocol), `402` ⇒ `PaymentRequiredError`, `429` ⇒ `RateLimitError`,
+- **Errors are typed outcomes, not strings.** `403` **with a protocol error body** ⇒
+  `AccessRevokedError`/`ClaimError` (never 401 in this protocol); a `403` lacking one (e.g.
+  a Cloudflare edge block) surfaces as a distinct transport error, not a false revocation.
+  `402` ⇒ `PaymentRequiredError`, `429` ⇒ `RateLimitError`,
   `5xx` ⇒ `ServerError`, protocol error lists (`errors`/`errlist`) attached when present.
 - **Never silently follow cross-host redirects.** Bridge→beta-bridge 302s drop paths and
   credentials; client uses `redirect: 'manual'` and rewrites known-safe cases explicitly.

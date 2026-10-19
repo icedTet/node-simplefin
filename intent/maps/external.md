@@ -60,7 +60,9 @@ Undocumented-but-live fields (capture as optional passthrough, don't depend): `h
 ## Status codes
 
 200 ok; 400 bad request; 402 payment required (unpaid subscription); 403 auth failed /
-claim already used / **token revoked**; 429 rate limited; 5xx server. Live + dev guide + sure client.
+claim already used / **token revoked** — note the Cloudflare edge also emits bare 403s for
+generic library UAs (see Operational constraints; not a protocol response); 429 rate
+limited; 5xx server. Live + dev guide + sure client.
 
 ## Operational constraints
 

@@ -48,14 +48,17 @@ wiki (subagent) → loop until green → commit, push, tag `stage-N`, CI green b
 - **claim**
   - Given a valid base64 setup token, When `claim(token)` is called, Then POST (empty body)
     hits the decoded claim URL and resolves with the trimmed Access URL string.
-  - Given an already-used token, When `claim` resolves status 403, Then a `ClaimError`
-    is thrown whose message tells the user the token may be compromised.
+  - Given an already-used token, When `claim` gets status 403 **with the protocol's
+    `text/plain` refusal body**, Then a `ClaimError` is thrown whose message tells the user
+    the token may be compromised; a 403 with any other body (edge/UA block) must surface as
+    a transport error, not a false revocation.
   - Given a setup token decoding to a non-HTTPS URL, When `claim`, Then it throws
     `InvalidTokenError` before any network call.
 - **client**
   - Given an access URL, When `getAccounts()`, Then the request carries
     `Authorization: Basic`, a package User-Agent, and never embeds userinfo in the URL.
-  - Given a revoked token (403 from /accounts), Then `AccessRevokedError` (not 401-based).
+  - Given a revoked token (403 with protocol error body from /accounts), Then
+    `AccessRevokedError` (not 401-based); a bodyless 403 maps to a transport error.
   - Given a 429, Then `RateLimitError`; given 402, `PaymentRequiredError`.
   - Given v1 response, When normalized, Then output shape equals v2-normalized shape:
     account carries `connId`; org fields appear as a `connection` entry; `errors` strings
@@ -78,6 +81,7 @@ with `provenance: declared`, README quickstart copy-pastable.
 ## [2026-10-19] decision | Protocol surface corrected: no /updates/cursor endpoints exist (Plaid conflation); SDK implements /info /claim /accounts with date-window polling. See maps/external.md.
 ## [2026-10-19] implement | Stage 0 complete locally (toolchain + CI + wiki); gates pending.
 ## [2026-10-19] review | Stage-0 gates: A NOT READY (isomorphism guard ineffective, CI node20 row invalid, coverage cmd red, tautology tests), C NOT READY (13 findings). B adjudicated: A1-A8/A10 + C-F1..F14 validated; C-F3 (external.md self-contradiction) FALSE-POSITIVE via live re-probe (bridge 302 → bare root, path dropped). All validated fixes applied; judgment calls taken: exports default condition added, engines floor >=22, pointer-comment deviation accepted until intent/modules/ exists (Stage 1).
+## [2026-10-19] review | Round 2: A NOT READY (N1 TS1471 CJS types — validated via consumer probe, N2 builtin/globals guard gap — validated, N3 engines note), C PASS w/ reservations (403 taxonomy over-broad — validated as wiki fix). B: N5 and NodeNext-half of N1 FALSE-POSITIVE. Fixes: nested exports conditions (probe now clean), builtinModules-pattern lint + no-restricted-globals (both proven to fire), 403-mapping conditioned on protocol error bodies everywhere, code: pointers completed, dev-floor documented.
 
 ## Outcome
 

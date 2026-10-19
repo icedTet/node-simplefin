@@ -3,7 +3,7 @@ type: testing
 status: in-progress
 provenance: declared
 updated: 2026-10-19
-code: [test/, vitest.config.ts, .github/workflows/ci.yml]
+code: [test/, scripts/smoke.mjs, vitest.config.ts, .github/workflows/ci.yml]
 ---
 
 # Testing
@@ -12,7 +12,8 @@ code: [test/, vitest.config.ts, .github/workflows/ci.yml]
 
 1. **Unit (hermetic, default `npm test`)** — every HTTP interaction mocked via injected
    `fetch`. Fixtures recorded from live bridge responses (see external.md provenance).
-   No network in CI. Coverage thresholds (90%) run in CI via `npm run test:coverage`.
+   (Stage 1+) No network in CI. Coverage thresholds (90%) run in CI via
+   `npm run test:coverage`.
 2. **Toolchain tests** — package.json self-consistency (exports map vs manifest fields,
    shipped files, engines floor), identity/version lockstep with `src/index.ts`, and —
    when `dist/` is present — that export targets actually exist. Isomorphism of `src/`
@@ -28,7 +29,10 @@ code: [test/, vitest.config.ts, .github/workflows/ci.yml]
 
 - Amounts stay strings through the entire pipeline (assert with fixtures containing
   high-precision decimals; a float parse anywhere fails a test).
-- 403 mapping: claim → `ClaimError`, accounts → `AccessRevokedError`. 401 is never produced.
+- 403 mapping: claim → `ClaimError` **only when the body is the protocol's `text/plain`
+  refusal**; accounts → `AccessRevokedError` **only with a protocol error body**. A 403
+  without either (e.g. Cloudflare edge/UA block) must not be reported as revocation.
+  401 is never produced.
 - `pending=0` is treated as *include pending* (presence check), omit to exclude.
 - Unknown `errlist` codes fall back to naked-prefix handling (`act.failedXYZ` behaves as `act.`).
 - Redirects are never followed across hosts; userinfo never reaches a `fetch` URL.
@@ -37,3 +41,6 @@ code: [test/, vitest.config.ts, .github/workflows/ci.yml]
 ## Commands
 
 `npm test` · `npm run test:coverage` · `npm run smoke` · `SIMPLEFIN_INTEGRATION=1 npx vitest run test/integration` (Stage 3)
+
+Dev prerequisite: Node ≥22.18 for the toolchain itself (tsup/vitest engines); the shipped
+package's consumer `engines` floor stays >=22.0.0.
