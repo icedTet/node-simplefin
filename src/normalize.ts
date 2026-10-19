@@ -3,7 +3,7 @@
 // on protocol version. Raw JSON enters here: typed model out, or a typed error.
 
 import { TransportError } from './errors';
-import { projectErrlist, projectXApiMessage } from './wire';
+import { collectErrorMessages, projectErrlist, projectXApiMessage } from './wire';
 import type {
   Account,
   AccountSet,
@@ -120,12 +120,9 @@ function isStringArrayOrAbsent(value: unknown): boolean {
   return value === undefined || (Array.isArray(value) && value.every((e) => typeof e === 'string'));
 }
 
-function isErrlistShapeOrAbsent(value: unknown): boolean {
-  return (
-    value === undefined ||
-    (Array.isArray(value) &&
-      value.every((e) => isRecord(e) && typeof e.code === 'string' && typeof e.msg === 'string'))
-  );
+function isArrayOrAbsent(value: unknown): boolean {
+  // Presence-level gate only; per-entry validity is filtered leniently by wire.projectErrlist.
+  return value === undefined || Array.isArray(value);
 }
 
 // ── v1 ───────────────────────────────────────────────────────────────────────────
@@ -161,7 +158,7 @@ function isWireAccountSetV1(value: unknown): value is WireAccountSetV1 {
   if (!isRecord(value) || !Array.isArray(value.accounts)) return false;
   return (
     isStringArrayOrAbsent(value.errors) &&
-    isErrlistShapeOrAbsent(value.errlist) &&
+    isArrayOrAbsent(value.errlist) &&
     value.accounts.every(isWireAccountV1)
   );
 }
@@ -202,16 +199,13 @@ export function normalizeV1(input: unknown): AccountSet {
     };
   });
   const errlist = projectErrlist(input.errlist);
+  const xApiMessage = projectXApiMessage(input['x-api-message']);
   return {
-    errors: [...(input.errors ?? []), ...errlist.map((e) => e.msg)].filter(
-      (value, index, all) => all.indexOf(value) === index,
-    ),
+    errors: collectErrorMessages({ errors: input.errors, errlist: input.errlist }),
     errlist,
     connections: [...connections.values()],
     accounts,
-    ...(projectXApiMessage(input['x-api-message']) !== undefined
-      ? { xApiMessage: projectXApiMessage(input['x-api-message']) }
-      : {}),
+    ...(xApiMessage !== undefined ? { xApiMessage } : {}),
   };
 }
 
@@ -252,7 +246,7 @@ function isWireAccountSetV2(value: unknown): value is WireAccountSetV2 {
   }
   return (
     isStringArrayOrAbsent(value.errors) &&
-    isErrlistShapeOrAbsent(value.errlist) &&
+    isArrayOrAbsent(value.errlist) &&
     value.connections.every(isWireConnectionV2) &&
     value.accounts.every(isWireAccountV2)
   );
@@ -284,9 +278,7 @@ export function normalizeV2(input: unknown): AccountSet {
   const errlist = projectErrlist(input.errlist);
   const xApiMessage = projectXApiMessage(input['x-api-message']);
   return {
-    errors: [...(input.errors ?? []), ...errlist.map((e) => e.msg)].filter(
-      (value, index, all) => all.indexOf(value) === index,
-    ),
+    errors: collectErrorMessages({ errors: input.errors, errlist: input.errlist }),
     errlist,
     connections,
     accounts,

@@ -19,8 +19,8 @@ enters here and either becomes a typed model or a typed error.
 - `errorPrefix(code)` — public helper collapsing `prefix.[subcode]` to `prefix.`;
   unknown subcodes behave like the naked prefix (v2 protocol guidance).
 - Both versions: server/synthesized connection ids link via `connectionId` (dangling v2
-  conn_id refs link nothing); `errlist` projected via [[modules/wire]] and msgs surfaced
-  (deduped) in `errors`; `x-api-message` captured leniently; `holdings[]` captured
+  conn_id refs link nothing); `errlist` — presence-level gate only, entries filtered
+  leniently by [[modules/wire]]; msgs surfaced (deduped) in `errors`; `x-api-message` captured leniently; `holdings[]` captured
   defensively — **never gates the payload** (schema not guaranteed; non-objects drop).
 - v2 connection unknown keys pass through raw (`org_name` survives); typed fields consume
   the wire key (no duplication).
@@ -38,8 +38,9 @@ enters here and either becomes a typed model or a typed error.
   underlying data must normalize to equal models apart from connection identity source.
 
 ## Dependencies
-Depends on: [[modules/types]] (shapes), [[modules/errors]] (boundary failures).
-Depended on by: [[modules/client]]. Related: [[maps/external]] (v1/v2 field table)
+Depends on: [[modules/types]] (shapes), [[modules/errors]] (boundary failures),
+[[modules/wire]] (error/passthrough helpers). Depended on by: [[modules/client]].
+Related: [[maps/external]] (v1/v2 field table)
 
 ## Constraints
 - The normalization invariant is a Gate-C target every stage.

@@ -17,7 +17,7 @@ caller ──options──────▶ client.ts ──▶ http.ts ──▶ 
                                           │
                         version 1 │ version 2 (wire param + normalizer dispatch)
                                           ▼
-public AccountSet ◀── normalize.ts (V1 | V2 predicates, errlist/x-api/holdings capture)
+public AccountSet ◀── normalize.ts (V1 | V2 predicates, capture) ◀── wire.ts (helpers)
 sync.ts (Stage 3) composes date windows on top of client.getAccounts
 ```
 
@@ -29,4 +29,4 @@ sync.ts (Stage 3) composes date windows on top of client.getAccounts
   dedicated normalize.test.ts (v2 + symmetry + prefix) and toolchain/index-identity checks.
   Recorded bridge fixtures land in `test/fixtures/` with Stage 3.
 
-Module pages: claim, access-url, net, http, client, errors, types, normalize (see index).
+Module pages: claim, access-url, net, http, client, errors, types, normalize, wire (see index).

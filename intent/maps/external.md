@@ -54,10 +54,12 @@ return 404 with no cursor/status headers (don't implement them).
 | `amount` numeric **string**, positive = deposit; `posted` unix int, **0 when pending**; `available-balance` optional; custom currency = `currency` is a URL → GET `{name,abbr}` | same fields | spec v1/v2 |
 
 Undocumented-but-live fields (capture as optional passthrough on BOTH versions, don't
-depend): `holdings[]` (present on live v1 too; bridge-issues: "don't depend on its
+depend): `holdings[]` (present on live v1 too; bridge-issues #43: "don't depend on its
 schema"), transaction `payee`, `memo`, `mcc`, `transacted_at`, `extra`, top-level
 `x-api-message: string[]` (present without `start-date`), connection `org_name`.
-**Live census (v1 and v2, demo): `mcc` is the only key ever observed `null`** (3/162 txns)
+**Live census (v1 and v2, demo, re-measured 2026-10-19): `mcc` is the only key ever
+observed `null`** — 6 of 162 transaction objects (3 unique ids appearing in two mirrored
+demo accounts)
 — the SDK treats null as absent for payee/memo/mcc, everything else stays strict-typed.
 Live probes 2026-10-19.
 

@@ -277,6 +277,43 @@ describe('error helpers leniency split (wire.ts)', () => {
     expect(() => normalizeV1({ accounts: [], errlist: 'junk' })).toThrow(TransportError);
   });
 
+  it('a malformed errlist entry never fails an otherwise-valid payload (parity with http path)', () => {
+    const set = normalizeV1({
+      accounts: [{ id: 'a', name: 'A', currency: 'USD', balance: '1' }],
+      errlist: [{ code: 'a', msg: 'keep' }, { code: 'b' }],
+    });
+    expect(set.errors).toEqual(['keep']);
+    expect(set.errlist).toEqual([{ code: 'a', msg: 'keep' }]);
+  });
+
+  it('v2 account extra passes through', () => {
+    const set = normalizeV2({
+      connections: [{ conn_id: 'c', name: 'N', org_id: 'o', sfin_url: 'https://s' }],
+      accounts: [
+        { id: 'a', name: 'A', conn_id: 'c', currency: 'USD', balance: '1', extra: { v: 1 } },
+      ],
+    });
+    expect(set.accounts[0]!.extra).toEqual({ v: 1 });
+  });
+
+  it('holdings values are passed through raw, never coerced (schema not guaranteed)', () => {
+    const set = normalizeV2({
+      connections: [{ conn_id: 'c', name: 'N', org_id: 'o', sfin_url: 'https://s' }],
+      accounts: [
+        {
+          id: 'a',
+          name: 'A',
+          conn_id: 'c',
+          currency: 'USD',
+          balance: '1',
+          holdings: [{ shares: 10.5, symbol: 'X' }],
+        },
+      ],
+    });
+    expect(set.accounts[0]!.holdings![0]!.shares).toBe(10.5);
+    expect(typeof set.accounts[0]!.holdings![0]!.shares).toBe('number');
+  });
+
   it('errorPrefix: empty input stays empty; subcodes collapse', () => {
     expect(errorPrefix('')).toBe('');
   });

@@ -16,12 +16,14 @@ never diverge between the two consumers (a stage-2 gate found exactly that drift
 ## Contract
 - `collectErrorMessages(record)`: every string in `errors` + every projected errlist msg,
   order-preserved, deduplicated. Never drops a message for a malformed *optional* field.
+  Single implementation of the display array — both http and the normalizers consume it.
 - `projectErrlist(list)`: entries kept iff `code`+`msg` are strings; malformed optional
   link fields (`conn_id`/`account_id`) sanitize to absent rather than dropping the entry.
 - `projectXApiMessage(value)`: string entries of the undocumented array kept; mixed junk
   filtered, not total-dropped; all-invalid → undefined.
 
 ## Dependencies
+Depends on: [[modules/types]] (ProtocolError shape only).
 Depended on by: [[modules/http]], [[modules/normalize]]. Related: [[maps/external]]
 
 ## Constraints

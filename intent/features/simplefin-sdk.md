@@ -99,3 +99,6 @@ with `provenance: declared`, README quickstart copy-pastable.
 
 ## [2026-10-19] implement | Stage 2: normalizeV2 + version dispatch + errorPrefix + errlist/passthrough capture + HttpError.errlist; 69 tests, symmetry invariant pinned; explicit version=1 param (external.md guidance) — flagged in client.md.
 ## [2026-10-19] review | Stage-2 round 1: A+C blocked, B validated all 13 (live: mcc-null v2 payloads, connection org_name, v1 holdings). Fixes C1-C8 landed; wire.ts module added; live SDK-vs-bridge check passes for v1+v2 (80 tests). Round 2 pending.
+
+## [2026-10-19] review | Stage-2 round 2: A NEW-1..5 + C W1..6, all verified by direct grep/inspection (claims cross-corroborated between reviewers; no separate B round deemed necessary at this scale). Fixed: unified display-array helper, errlist presence-gate relaxation, citations/provenance, symmetry-adjacent tests, wiki edges/maps/log accuracy. Process note (W6): round-1 src/test fixes landed without same-commit doc edits; docs followed one commit later in-session — will inline next stage.
+

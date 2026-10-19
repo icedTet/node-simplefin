@@ -33,7 +33,7 @@ Typed outcomes instead of stringly-typed throws, so apps can branch on
 
 ## Dependencies
 Depended on by: [[modules/http]], [[modules/claim]], [[modules/net]], [[modules/access-url]],
-[[modules/normalize]], [[modules/wire]] (types only). Related: [[maps/external]]
+[[modules/normalize]]. Related: [[maps/external]]
 
 ## Constraints
 - `name` equals class name (`new.target`) — stable for serialization/logging.
