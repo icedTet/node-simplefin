@@ -32,6 +32,7 @@ Typed outcomes instead of stringly-typed throws, so apps can branch on
   spec checklist (external.md security invariants).
 
 ## Dependencies
+Depends on: [[modules/types]] (ProtocolError type, type-only).
 Depended on by: [[modules/http]], [[modules/claim]], [[modules/net]], [[modules/access-url]],
 [[modules/normalize]]. Related: [[maps/external]]
 

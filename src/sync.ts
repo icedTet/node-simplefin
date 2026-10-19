@@ -49,7 +49,7 @@ export interface CollectOptions
   extends Omit<GetAccountsOptions, 'startDate' | 'endDate'>, WindowOptions {
   /** Start of range (required: an unbounded default would spend the whole daily quota). */
   startDate: Date | number;
-  /** Inclusive end (default: now). */
+  /** Exclusive upper bound (matches the wire's end-date; default: now). */
   endDate?: Date | number;
   /** Guard against quota blowouts: more windows than this throws before fetching. */
   maxRequests?: number;

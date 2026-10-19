@@ -35,10 +35,10 @@ code: [test/, scripts/smoke.mjs, vitest.config.ts, .github/workflows/ci.yml]
 
 - Amounts stay strings through the entire pipeline (assert with fixtures containing
   high-precision decimals; a float parse anywhere fails a test).
-- 403 mapping: claim → `ClaimError` **only when the body is the protocol's `text/plain`
-  refusal**; accounts → `AccessRevokedError` **only with a protocol error body**. A 403
-  without either (e.g. Cloudflare edge/UA block) must not be reported as revocation.
-  401 is never produced.
+- 403 mapping: claim → `ClaimError` **only on the protocol refusal (text/plain
+  content-type, or `Forbidden…` body when none)**; accounts → `AccessRevokedError`
+  **only with a protocol errors/errlist array body**. A 403 without either (e.g.
+  Cloudflare edge/UA block) must not be reported as revocation. 401 is never produced.
 - `pending=0` is treated as *include pending* (presence check), omit to exclude.
 - Unknown `errlist` codes fall back to naked-prefix handling
   (`act.failedXYZ` behaves as `act.`); error metadata is extracted leniently (a malformed

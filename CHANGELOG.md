@@ -29,4 +29,6 @@ version })` against v1 (default) and v2 (opt-in) wire protocols.
 
 - Cloudflare edge/UA-403 discrimination on the claim path is heuristic; live re-verify
   deferred to a private-token run (`intent/testing.md`).
+- The 90-day-cap `gen.api` behavior was curl-verified manually but has no scripted live
+  integration assertion yet (demo-token budget; `intent/testing.md`).
 - v1 custom-currency URL resolution helper not yet shipped (`intent/modules/types.md`).

@@ -40,7 +40,7 @@ wiki (subagent) → loop until green → commit, push, tag `stage-N`, CI green b
 | 0 | Toolchain, CI, wiki bootstrap | lint/typecheck/test/build/smoke/pack green locally; CI workflow committed |
 | 1 | claim + access-url + http + client (v1) + errors | unit tests incl. all error mappings; scenario tests below pass |
 | 2 | v2 + normalize + passthrough fields | version-normalization invariants tested — landed, gates pending |
-| 3 | full suite, integration opt-in, sync helpers | ✓ 96 unit + fixtures + live integration demonstrated 2026-10-19; edge/UA-403 live re-verify deferred to a private-token run (documented in testing.md) |
+| 3 | full suite, integration opt-in, sync helpers | ✓ 98 unit + fixtures + live integration demonstrated 2026-10-19; edge/UA-403 live re-verify deferred to a private-token run (documented in testing.md) |
 | 4 | README/docs/CHANGELOG, publish config | `npm pack` clean; docs match API |
 
 ## Contract — behavioral scenarios

@@ -4,8 +4,9 @@ Isomorphic TypeScript client for the [SimpleFIN](https://www.simplefin.org/proto
 protocol — read-only bank accounts and transactions via user-pasted setup tokens.
 Runs on Node ≥ 22, Bun, Deno, and modern browsers. Zero runtime dependencies.
 
-> The living spec for this package lives in [`intent/`](intent/index.md); rollout state in
-> [`intent/features/simplefin-sdk.md`](intent/features/simplefin-sdk.md).
+> The living spec for this package lives in [`intent/`](https://github.com/icedTet/node-simplefin/tree/main/intent);
+> rollout state in
+> [`intent/features/simplefin-sdk.md`](https://github.com/icedTet/node-simplefin/blob/main/intent/features/simplefin-sdk.md).
 
 ## Install
 
@@ -54,7 +55,8 @@ to burn more than the bridge's ~24 requests/day budget before making any request
   `errorPrefix(err.code)` (`"act.failedOurs"` → `"act."`), not the raw code.
 - Errors are typed (`instanceof`): `AccessRevokedError`, `RateLimitError`,
   `PaymentRequiredError`, `ClaimError`, `TransportError`, … See
-  [`intent/modules/errors.md`](intent/modules/errors.md).
+  [`intent/modules/errors.md`](https://github.com/icedTet/node-simplefin/blob/main/intent/modules/errors.md).
+- `pkg` is exported for telemetry/version checks (`import { pkg } from 'node-simplefin'`).
 
 ## Security notes
 

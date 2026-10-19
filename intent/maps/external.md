@@ -91,8 +91,10 @@ limited; 5xx server. Live + dev guide + sure client.
   schedule at a **random minute** (traffic spikes on the hour). Dev guide.
 - `bridge.simplefin.org` currently **302-redirects everything** (incl. pathed API POSTs) to
   `Location: https://beta-bridge.simplefin.org/` — bare root, path dropped (re-probed
-  2026-10-19). Treat with `redirect: 'manual'`, rewrite host for the API root, or fail
-  explicitly.
+  2026-10-19; rewrite proposal upstream in bridge-issues#14). Handling: rewrite known
+  hosts up front, otherwise default-follow + assert same-origin final URL — manual mode
+  is browser-divergent (opaqueredirect) and buys nothing (Node/Bun/Deno probe evidence,
+  intent/modules/net.md).
 - Cloudflare edge **403s requests with generic library UAs** (`Python-urllib/...`). The
   runtime-native UAs that matter here were live-verified as passing: Node/undici, Bun, Deno,
   browsers, and even an empty UA all get 200; only some library signatures are blocked.
