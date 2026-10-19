@@ -172,8 +172,10 @@ function orgToConnection(
   const key = `${sfinUrl}\u0000${org.domain ?? ''}\u0000${org.name ?? ''}`;
   const existing = ids.get(key);
   if (existing) return existing;
+  // Deterministic synthesized id (stable across responses) so multi-window merges in
+  // sync.ts can key on it; v2 supplies server conn_ids directly.
   const connection: Connection = {
-    id: `conn-${ids.size + 1}`,
+    id: `v1:${encodeURIComponent(sfinUrl)}:${encodeURIComponent(org.domain ?? '')}:${encodeURIComponent(org.name ?? '')}`,
     name: org.name ?? org.domain ?? sfinUrl,
     ...(org.domain !== undefined ? { domain: org.domain } : {}),
     ...(org.url !== undefined ? { url: org.url } : {}),
@@ -183,7 +185,8 @@ function orgToConnection(
   return connection;
 }
 
-/** v1 → normalized. Connection identities are synthesized per unique org; legacy
+/** v1 → normalized. Connection identities are synthesized deterministically from org
+ *  identity (stable across responses); legacy
  *  `errors` and a defensive `errlist` surface in `errors`; live passthroughs
  *  (holdings, x-api-message) are captured like on v2. */
 export function normalizeV1(input: unknown): AccountSet {

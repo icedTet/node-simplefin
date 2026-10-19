@@ -98,7 +98,8 @@ export interface WireAccountSetV2 {
 // ── public normalized model (version-independent) ────────────────────────────────
 
 export interface Connection {
-  /** v2: server-supplied conn_id. v1: synthesized `conn-N`, per response only. */
+  /** v2: server-supplied conn_id. v1: synthesized deterministically from
+   *  (sfinUrl, domain, name) — stable across responses, opaque in shape. */
   readonly id: string;
   readonly name: string;
   /** v1-era org field; v2 servers use orgId. Consumers should tolerate absence. */

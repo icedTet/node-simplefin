@@ -11,7 +11,14 @@ const PAGE = 'https://beta-bridge.simplefin.org/info/developers';
 async function freshDemoToken(): Promise<string> {
   const html = await (await fetch(PAGE, { headers: { Accept: 'text/html' } })).text();
   const match = html.match(/aHR0[^"'<\s]{40,}={0,2}/g) ?? [];
-  const isClaimToken = (t: string) => atob(t).includes('/claim/');
+  // Some aHR0-looking runs on the page may not decode cleanly; never crash the hunt.
+  const isClaimToken = (t: string) => {
+    try {
+      return atob(t).includes('/claim/');
+    } catch {
+      return false;
+    }
+  };
   const token = match.find(isClaimToken);
   if (!token) throw new Error('no demo claim token on page (did the page change?)');
   return token;

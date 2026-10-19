@@ -27,25 +27,35 @@ const setWith = (account: AccountSet['accounts'][number]): AccountSet => ({
 });
 
 describe('splitWindows', () => {
-  it('tiles a 200-day range into ≤90-day windows with 5-day backward overlap', () => {
+  it('tiles a 200-day range into <=45-day windows with ~5-day overlaps', () => {
     const start = 0;
     const end = 200 * DAY;
     const windows = splitWindows(start, end);
-    expect(windows).toHaveLength(3);
-    expect(windows[0]).toEqual({ startDate: start - 5 * DAY, endDate: 90 * DAY });
-    expect(windows[1]!.startDate).toBe(85 * DAY);
-    expect(windows[2]!.endDate).toBe(end);
+    for (const w of windows) {
+      expect(w.endDate - w.startDate).toBeLessThanOrEqual(45 * DAY); // server-rec cap
+      expect(w.endDate - w.startDate).toBeGreaterThan(0);
+    }
+    expect(windows[0]).toEqual({ startDate: start, endDate: 45 * DAY });
     for (let i = 1; i < windows.length; i++) {
       expect(windows[i]!.startDate).toBeLessThan(windows[i - 1]!.endDate); // overlap, no gap
+      expect(windows[i]!.startDate).toBeGreaterThanOrEqual(start);
     }
-    for (const w of windows) expect(w.endDate - w.startDate).toBeLessThanOrEqual(95 * DAY);
+    expect(windows.at(-1)!.endDate).toBe(end);
   });
 
-  it('short ranges yield a single clamped window', () => {
+  it('explicit geometry stays within maxSpan', () => {
+    const windows = splitWindows(0, 30 * DAY, {
+      maxSpanSeconds: 10 * DAY,
+      overlapSeconds: 2 * DAY,
+    });
+    for (const w of windows) expect(w.endDate - w.startDate).toBeLessThanOrEqual(10 * DAY);
+    expect(windows).toHaveLength(4);
+  });
+
+  it('short ranges yield a single window', () => {
     const windows = splitWindows(1000, 1000 + 2 * DAY);
     expect(windows).toHaveLength(1);
-    expect(windows[0]!.startDate).toBe(1000 - 5 * DAY);
-    expect(windows[0]!.endDate).toBe(1000 + 2 * DAY);
+    expect(windows[0]).toEqual({ startDate: 1000, endDate: 1000 + 2 * DAY });
   });
 
   it('rejects invalid ranges and geometry', () => {
@@ -87,13 +97,67 @@ describe('collectAccounts', () => {
         }),
     ]);
     const merged = await collectAccounts(client, { startDate: start, endDate: end });
-    expect(calls).toHaveLength(2);
+    expect(calls.length).toBeGreaterThan(1); // 180d at default 45d/5d geometry
     expect(calls[0]!.endDate).toBeLessThanOrEqual(calls[1]!.startDate + 95 * DAY);
     const account = merged.accounts[0]!;
     expect(account.balance).toBe('7.00');
-    expect(account.transactions.map((x) => x.id).sort()).toEqual(['x', 'y', 'z']);
+    expect(account.transactions.map((x) => x.id)).toEqual(['x', 'y', 'z']); // posted-sorted
+    expect(account.transactions.map((x) => x.posted)).toEqual([1, 2, 3]);
     const keys = account.transactions.map((x) => x.id);
     expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('a duplicate txn id in later windows wins at its sorted position', async () => {
+    const { client } = fakeClient([
+      () =>
+        setWith({
+          id: 'a1',
+          name: 'A',
+          currency: 'USD',
+          balance: '5.00',
+          transactions: [{ id: 'x', posted: 1, amount: '1.00', description: 'd', pending: false }],
+        }),
+      () =>
+        setWith({
+          id: 'a1',
+          name: 'A',
+          currency: 'USD',
+          balance: '7.00',
+          transactions: [
+            { id: 'x', posted: 1, amount: '2.00', description: 'fixed', pending: false },
+          ],
+        }),
+    ]);
+    const merged = await collectAccounts(client, {
+      startDate: 0,
+      endDate: 100 * DAY,
+      maxSpanSeconds: 60 * DAY,
+      overlapSeconds: 5 * DAY,
+    });
+    expect(merged.accounts[0]!.transactions).toHaveLength(1);
+    expect(merged.accounts[0]!.transactions[0]!.amount).toBe('2.00');
+  });
+
+  it('requires an explicit startDate and respects the maxRequests guard', async () => {
+    const { client, calls } = fakeClient([() => empty]);
+    await expect(collectAccounts(client as never, { endDate: 10 * DAY } as never)).rejects.toThrow(
+      RangeError,
+    );
+    expect(calls).toHaveLength(0);
+    await expect(collectAccounts(client, { startDate: 0, endDate: 4000 * DAY })).rejects.toThrow(
+      /maxRequests/,
+    );
+    expect(calls).toHaveLength(0);
+  });
+
+  it('accepts Date objects for both bounds', async () => {
+    const { calls, client } = fakeClient([() => empty]);
+    await collectAccounts(client, {
+      startDate: new Date(2026, 0, 1),
+      endDate: new Date(2026, 2, 1),
+    });
+    expect(calls.length).toBeGreaterThan(0);
+    expect(typeof calls[0]!.startDate).toBe('number');
   });
 
   it('merges errors, errlist and connections without duplicates', async () => {
