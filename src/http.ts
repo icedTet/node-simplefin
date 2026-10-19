@@ -111,7 +111,12 @@ export async function requestJson<T>(
   } catch (cause) {
     throw new TransportError(`Request to ${safeUrl} failed`, { cause });
   }
-  assertSameOrigin(response, url);
+  try {
+    assertSameOrigin(response, url);
+  } catch (error) {
+    response.body?.cancel().catch(() => undefined);
+    throw error;
+  }
 
   const contentType = response.headers.get('content-type') ?? '';
   const isJson = contentType.includes('application/json');
@@ -126,7 +131,7 @@ export async function requestJson<T>(
   if (!response.ok) classifyStatus(response.status, safeUrl, body);
   if (!isJson) {
     throw new TransportError(
-      `Expected application/json but got "${contentType || 'unknown'}" (HTTP ${response.status})`,
+      `Expected application/json but got "${contentType.slice(0, 80) || 'unknown'}" (HTTP ${response.status})`,
       { status: response.status },
     );
   }

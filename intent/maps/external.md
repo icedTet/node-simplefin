@@ -82,9 +82,11 @@ limited; 5xx server. Live + dev guide + sure client.
   browsers, and even an empty UA all get 200; only some library signatures are blocked.
   The SDK therefore sends **no custom UA header** — a custom header on the claim POST would
   break its CORS-simple status anyway (bridge-issues#27 + live).
-- Browser CORS: `/accounts` echoes `access-control-allow-origin` + credentials; claim POST
-  is a CORS-simple request — never add custom headers to it (would trigger preflight;
-  OPTIONS on claim 404s). Live + dev guide.
+- Browser CORS: `/accounts` echoes `access-control-allow-origin` + credentials; its
+  preflight allows the `authorization` header (`OPTIONS /accounts` →
+  `access-control-allow-headers: authorization`). Claim POST is a CORS-simple request —
+  never add custom headers to it (would trigger preflight; OPTIONS on claim 404s).
+  Live (research probes 2026-10-19) + dev guide.
 - v2 is opt-in (`version=2`); v1 supported ≥1 year after 2026-03-19. GH discussion #33.
 
 ## Security invariants (spec checklist)

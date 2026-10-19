@@ -41,8 +41,9 @@ code: [test/, scripts/smoke.mjs, vitest.config.ts, .github/workflows/ci.yml]
   (`act.failedXYZ` behaves as `act.`). Error-path `msg` extraction from `errlist` bodies
   is active now (http.md).
 - Redirects are never followed across hosts; userinfo never reaches a `fetch` URL.
-- Claim POST sends no custom headers (CORS-simple); GETs add only `Authorization` +
-  `Accept` (both CORS-safe). Runtime-native UAs are live-verified acceptable (external.md).
+- Claim POST sends no custom headers (CORS-simple); GETs add `Accept` (safelisted) +
+  `Authorization` (allowed by the bridge's preflight, external.md). Runtime-native UAs are
+  live-verified acceptable (external.md).
 
 ## Commands
 

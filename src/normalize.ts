@@ -106,7 +106,8 @@ function isWireAccountSetV1(value: unknown): value is WireAccountSetV1 {
 }
 
 function optional(value: unknown, type: 'string' | 'number' | 'boolean' | 'object'): boolean {
-  return value === undefined || typeof value === type;
+  if (value === undefined) return true;
+  return type === 'object' ? isRecord(value) : typeof value === type;
 }
 
 function isWireOrg(value: unknown): boolean {

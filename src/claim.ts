@@ -50,18 +50,23 @@ export async function claim(setupToken: string, options: ClaimOptions = {}): Pro
   } catch (cause) {
     throw new TransportError('Claim request failed', { cause });
   }
-  assertSameOrigin(response, claimUrl);
+  try {
+    assertSameOrigin(response, claimUrl);
+  } catch (error) {
+    response.body?.cancel().catch(() => undefined);
+    throw error;
+  }
 
   if (response.status === 403) {
     // Only the protocol's text/plain refusal means "used or compromised"; an HTML edge
     // 403 (e.g. Cloudflare UA block) must not raise a false revocation alarm (external.md).
     const body = (await response.text()).trim();
-    const ct = response.headers.get('content-type') ?? '';
+    const ct = (response.headers.get('content-type') ?? '').slice(0, 80);
     if (ct.startsWith('text/plain') || (!ct && /^Forbidden\b/i.test(body))) {
       throw new ClaimError();
     }
     throw new TransportError(
-      `Claim refused (403) without a protocol error body${ct ? `, content-type "${ct}"` : ''}`,
+      `Claim refused (403) without a protocol refusal body${ct ? ` (content-type "${ct}")` : ''}`,
       {
         status: 403,
       },
