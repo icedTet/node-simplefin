@@ -4,7 +4,6 @@
 // allowed to mean "revoked"; success requires a JSON content-type (shape gate: normalizer).
 
 import type { AccessUrl } from './access-url';
-import type { ProtocolError } from './types';
 import {
   AccessRevokedError,
   BadRequestError,
@@ -21,7 +20,7 @@ import {
   rewriteLegacyHost,
   type FetchLike,
 } from './net';
-import { projectErrlist } from './normalize';
+import { collectErrorMessages, projectErrlist } from './wire';
 
 export interface RequestOptions {
   fetch?: FetchLike;
@@ -29,11 +28,15 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
-function readProtocolBody(input: unknown): {
+interface ProtocolBody {
   errors: string[];
-  errlist: ProtocolError[];
+  errlist: ReturnType<typeof projectErrlist>;
   isProtocol: boolean;
-} {
+}
+
+/** A protocol error body is one carrying an `errors` or `errlist` **array** — key
+ *  presence alone proves nothing ({"errlist":null} is not a protocol answer). */
+function readProtocolBody(input: unknown): ProtocolBody {
   let body = input;
   if (typeof body === 'string') {
     try {
@@ -46,25 +49,21 @@ function readProtocolBody(input: unknown): {
     return { errors: [], errlist: [], isProtocol: false };
   }
   const record = body as Record<string, unknown>;
-  const errors: string[] = [];
-  if (Array.isArray(record.errors))
-    errors.push(...record.errors.filter((e): e is string => typeof e === 'string'));
-  const errlist = projectErrlist(record.errlist);
-  errors.push(...errlist.map((entry) => entry.msg));
-  if (Array.isArray(record.errors) || errlist.length > 0 || 'errlist' in record) {
-    return { errors, errlist, isProtocol: true };
-  }
-  return { errors, errlist, isProtocol: false };
+  const hasErrorsArray = Array.isArray(record.errors);
+  const hasErrlistArray = Array.isArray(record.errlist);
+  return {
+    errors: collectErrorMessages(record),
+    errlist: projectErrlist(record.errlist),
+    isProtocol: hasErrorsArray || hasErrlistArray,
+  };
 }
 
 function classifyStatus(status: number, url: string, body: unknown): never {
   const { errors, errlist, isProtocol } = readProtocolBody(body);
   const message = (text: string) => `${text} (HTTP ${status}, ${url})`;
-  if (status === 400)
-    throw new BadRequestError(message('Bad request'), status, url, errors, errlist);
-  if (status === 402) {
-    throw new PaymentRequiredError(message('Payment required'), status, url, errors, errlist);
-  }
+  const details = { status, url, errors, errlist };
+  if (status === 400) throw new BadRequestError(message('Bad request'), details);
+  if (status === 402) throw new PaymentRequiredError(message('Payment required'), details);
   if (status === 403) {
     if (!isProtocol) {
       // Not a protocol refusal: likely an edge/UA block. A revoked token would have
@@ -73,16 +72,12 @@ function classifyStatus(status: number, url: string, body: unknown): never {
     }
     throw new AccessRevokedError(
       message('Access denied: token revoked, disabled, or credentials wrong'),
-      status,
-      url,
-      errors,
-      errlist,
+      details,
     );
   }
-  if (status === 429)
-    throw new RateLimitError(message('Rate limited'), status, url, errors, errlist);
-  if (status >= 500) throw new ServerError(message('Server error'), status, url, errors, errlist);
-  throw new HttpError(message('Unexpected status'), status, url, errors, errlist);
+  if (status === 429) throw new RateLimitError(message('Rate limited'), details);
+  if (status >= 500) throw new ServerError(message('Server error'), details);
+  throw new HttpError(message('Unexpected status'), details);
 }
 
 /** GET `{root}{path}?{query}` against an access URL; returns the parsed wire body.

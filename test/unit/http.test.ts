@@ -104,6 +104,24 @@ describe('requestJson', () => {
     expect(error.status).toBe(403);
   });
 
+  it('treats null-errlist and junk-errlist 403 bodies as non-protocol (never mislabeled)', async () => {
+    for (const body of [{ errlist: null }, { errlist: 'spam' }, { errors: null }]) {
+      const { fetch } = mockFetch(jsonResponse(403, body));
+      const error = await expectError(
+        requestJson(access, 'accounts', new URLSearchParams(), { fetch }),
+      );
+      expect(error).toBeInstanceOf(TransportError);
+      expect(error).not.toBeInstanceOf(AccessRevokedError);
+    }
+  });
+
+  it('classifies an empty-errlist-array 403 as protocol (v2 servers may send [])', async () => {
+    const { fetch } = mockFetch(jsonResponse(403, { errlist: [], accounts: [] }));
+    await expect(
+      requestJson(access, 'accounts', new URLSearchParams(), { fetch }),
+    ).rejects.toBeInstanceOf(AccessRevokedError);
+  });
+
   it('treats an empty-JSON 403 body as non-protocol', async () => {
     const { fetch } = mockFetch(jsonResponse(403, {}));
     const error = await expectError(

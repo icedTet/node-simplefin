@@ -28,29 +28,30 @@ export class ClaimError extends SimplefinError {
   }
 }
 
+export interface HttpErrorOptions {
+  status: number;
+  /** Origin + path of the endpoint; query strings excluded (never log account ids). */
+  url: string;
+  /** Display strings from `errors` + errlist msgs, deduplicated; sanitize before render. */
+  errors?: string[];
+  /** Structured protocol errors when the body carried an errlist; classify with
+   *  errorPrefix(code), not code. */
+  errlist?: ProtocolError[];
+}
+
 /** Base for errors that carry an HTTP status from the API. */
 export class HttpError extends SimplefinError {
   readonly status: number;
-  /** Origin + path of the endpoint, query string removed (never log account ids). */
   readonly url: string;
-  /** Display strings from `errors`/`errlist` bodies — sanitize before rendering. */
   readonly errors: string[];
-  /** Structured protocol errors when the body carried an errlist (classify on
-   *  errorPrefix(code), not code). */
   readonly errlist: ProtocolError[];
 
-  constructor(
-    message: string,
-    status: number,
-    url: string,
-    errors: string[] = [],
-    errlist: ProtocolError[] = [],
-  ) {
+  constructor(message: string, options: HttpErrorOptions) {
     super(message);
-    this.status = status;
-    this.url = url;
-    this.errors = errors;
-    this.errlist = errlist;
+    this.status = options.status;
+    this.url = options.url;
+    this.errors = options.errors ?? [];
+    this.errlist = options.errlist ?? [];
   }
 }
 
