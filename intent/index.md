@@ -9,8 +9,8 @@ Read this catalog first, then drill into the pages relevant to your task.
 
 | Page | Summary | Status |
 |---|---|---|
-| [architecture.md](architecture.md) | Package goals, layering, isomorphism strategy, stage plan | current |
-| [testing.md](testing.md) | Hermetic unit tests, opt-in live integration, multi-runtime smoke | current |
+| [architecture.md](architecture.md) | Package goals, layering, isomorphism strategy, stage plan | in-progress |
+| [testing.md](testing.md) | Hermetic unit tests, opt-in live integration, multi-runtime smoke | in-progress |
 | [maps/external.md](maps/external.md) | SimpleFIN protocol contract: endpoints, quirks, live-verified facts | current |
 | [maps/internal.md](maps/internal.md) | Module layout and data flow inside this repo | in-progress |
 | [features/simplefin-sdk.md](features/simplefin-sdk.md) | The SDK build itself: blueprint, contract, stage gates | in-progress |

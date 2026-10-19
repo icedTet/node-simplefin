@@ -20,8 +20,8 @@ behavior, CI-gated reviews.
 
 ## Touches
 
-[architecture.md](architecture.md) · [maps/external.md](maps/external.md) ·
-[maps/internal.md](maps/internal.md) · [testing.md](testing.md)
+[../architecture.md](../architecture.md) · [../maps/external.md](../maps/external.md) ·
+[../maps/internal.md](../maps/internal.md) · [../testing.md](../testing.md)
 
 ## Impact
 
@@ -69,7 +69,7 @@ wiki (subagent) → loop until green → commit, push, tag `stage-N`, CI green b
 
 ## Definition of Done (v0.1.0 ship)
 
-API frozen for stages 1–3, all gates green, CI green on Node 20/22 + Bun + Deno,
+API frozen for stages 1–3, all gates green, CI green on Node 22/24 + Bun + Deno,
 integration e2e demonstrated once on demo token (logged below), wiki pages `current`
 with `provenance: declared`, README quickstart copy-pastable.
 
@@ -77,6 +77,7 @@ with `provenance: declared`, README quickstart copy-pastable.
 
 ## [2026-10-19] decision | Protocol surface corrected: no /updates/cursor endpoints exist (Plaid conflation); SDK implements /info /claim /accounts with date-window polling. See maps/external.md.
 ## [2026-10-19] implement | Stage 0 complete locally (toolchain + CI + wiki); gates pending.
+## [2026-10-19] review | Stage-0 gates: A NOT READY (isomorphism guard ineffective, CI node20 row invalid, coverage cmd red, tautology tests), C NOT READY (13 findings). B adjudicated: A1-A8/A10 + C-F1..F14 validated; C-F3 (external.md self-contradiction) FALSE-POSITIVE via live re-probe (bridge 302 → bare root, path dropped). All validated fixes applied; judgment calls taken: exports default condition added, engines floor >=22, pointer-comment deviation accepted until intent/modules/ exists (Stage 1).
 
 ## Outcome
 

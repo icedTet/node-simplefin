@@ -2,4 +2,5 @@ dist/
 coverage/
 node_modules/
 package-lock.json
+# intent pages use hand-aligned tables; reformatting churns review diffs
 intent/

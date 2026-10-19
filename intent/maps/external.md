@@ -3,7 +3,7 @@ type: map
 status: current
 provenance: mixed
 updated: 2026-10-19
-code: [src/http.ts, src/claim.ts]
+code: [src/]
 ---
 
 # External map: SimpleFIN protocol contract
@@ -18,12 +18,13 @@ Verified 2026-10-19 against docs (`https://www.simplefin.org/protocol.html` v2.0
 |---|---|---|---|
 | `GET {root}/info` | none | `{"versions":["1.0"]}` — **do not trust for v2 detection**; reports 1.0 while serving v2 via param | live probe; bridge-issues#26 |
 | `GET {root}/create` | user session | HTML page; live = 303 → bridge homepage login | live probe |
-| `POST {root}/claim/:token` | none; `Content-Length: 0` | 200 `text/plain` Access URL (no trailing newline; trim anyway); 403 = used/missing/possibly compromised | docs + live demo e2e |
+| `POST {root}/claim/:token` | none; `Content-Length: 0` | 200 `text/plain` Access URL (no trailing newline; trim anyway); 403 `text/plain` "was it already claimed?" = used/missing/possibly compromised | docs + live demo e2e; 403 body re-probed 2026-10-19 |
 | `GET {access}/accounts` | Basic (from access URL userinfo) | 200 JSON `AccountSet`; see quirks | docs + live |
 
-`GET` on claim URL = 404 (POST only). `/access`, `/latest`, `/updates`,
-`cursor`, `window`, `X-Status`, `X-Next-Cursor` **do not exist** — all 404 on live bridge
-(planned-probe 2026-10-19; don't implement them).
+`GET` on the claim URL = 404 on the beta root (POST only); via the legacy bridge host you
+first get the path-dropping 302 below. `/access`, `/latest`, `/updates`, `cursor`,
+`window`, `X-Status`, `X-Next-Cursor` **do not exist** — live-probed 2026-10-19: all
+return 404 with no cursor/status headers (don't implement them).
 
 ## Access URL & auth
 
@@ -39,9 +40,9 @@ Verified 2026-10-19 against docs (`https://www.simplefin.org/protocol.html` v2.0
 |---|---|---|
 | `start-date` | unix secs, inclusive (≥) | spec v1/v2 |
 | `end-date` | unix secs, exclusive (<) | spec v1/v2 |
-| `pending` | include pending iff param **present** (`pending=0` behaves like 1 — omit to exclude) | spec + live (Ruby presence check) |
+| `pending` | spec: include pending iff `pending=1` provided, default excluded; live bridge checks **presence** (`pending=0` behaves like 1 — omit to exclude) | spec v1/v2 + live (bridge impl) |
 | `account` | filter by id; repeatable; unknown id → 200 empty | spec v2 + live |
-| `balances-only` | `1` = balances without transaction payloads (`transactions` key still present, empty) | spec v2 + live |
+| `balances-only` | `1` = no transaction data per spec; live keeps `transactions` key present but empty | spec v2; empty-key detail live-only |
 | `version` | `2` selects v2 schema; default serves v1 | spec + live |
 
 ## Response model differences (v1 → v2)
@@ -70,9 +71,10 @@ claim already used / **token revoked**; 429 rate limited; 5xx server. Live + dev
   entry. Live probe.
 - Polling model: daily GET with ~**5-day overlapping windows**, diff by txn `id`;
   schedule at a **random minute** (traffic spikes on the hour). Dev guide.
-- `bridge.simplefin.org` currently **302-redirects everything to beta-bridge**, dropping
-  path+creds on API calls. Treat `redirect: 'manual'`, rewrite host for the API root, or
-  fail explicitly. Live probe 2026-10-19.
+- `bridge.simplefin.org` currently **302-redirects everything** (incl. pathed API POSTs) to
+  `Location: https://beta-bridge.simplefin.org/` — bare root, path dropped (re-probed
+  2026-10-19). Treat with `redirect: 'manual'`, rewrite host for the API root, or fail
+  explicitly.
 - Cloudflare edge **403s requests with generic library UAs** (`Python-urllib/...`); a real
   `User-Agent` (e.g. `node-simplefin/<ver>`) is required. bridge-issues#27 + live.
 - Browser CORS: `/accounts` echoes `access-control-allow-origin` + credentials; claim POST

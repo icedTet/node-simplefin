@@ -22,7 +22,7 @@ const data = await client.getAccounts({ version: 2, pending: true });
 
 ## Requirements
 
-- Any runtime with global `fetch`: Node.js >= 18, Bun, Deno, modern browsers (bridge CORS supported).
+- Any runtime with global `fetch`: Node.js >= 22, Bun, Deno, modern browsers (bridge CORS supported).
 - Amounts are exposed as strings; parse with a decimal-safe type of your choice.
 
 ## Development

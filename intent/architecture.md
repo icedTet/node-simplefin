@@ -18,9 +18,11 @@ credentials, then polls `{access}/accounts`. Facts and quirks: [maps/external.md
 ## Design positions (declared)
 
 - **Isomorphic, zero runtime deps.** Only global `fetch` / `URL` / base64 via a bundled
-  polyfill-safe helper. No `node:` imports in `src/` — `tsconfig` sets `"types": []` so
-  Node globals fail typecheck, enforcing this. Runs in Node ≥18, Bun, Deno, browsers
-  (the bridge sends permissive CORS headers; see external.md).
+  polyfill-safe helper. `src/` is typechecked as its own program (`tsconfig.src.json`,
+  `types: []`) so Node globals and `node:` module imports fail there, with a lint
+  backstop (`no-restricted-imports` on `src/**`); `lib` includes DOM so browser globals
+  are allowed. Runs in Node ≥22, Bun, Deno, browsers (the bridge sends permissive CORS
+  headers; see external.md).
 - **Amounts are strings.** Balances/amounts are decimal strings end to end; the SDK never
   parses to float. Formatting/money math is the consumer's job (documented in README).
 - **v1 default, v2 opt-in, normalized outward.** Requests default to the bridge's v1
@@ -40,6 +42,7 @@ credentials, then polls `{access}/accounts`. Facts and quirks: [maps/external.md
 | `src/claim.ts` | setup token → access URL | 1 |
 | `src/access-url.ts` | parse/store access URLs, split credentials | 1 |
 | `src/http.ts` | fetch wrapper: auth, UA, redirects, status→error | 1 |
+| `src/client.ts` | `SimplefinClient` public class over http + normalize | 1 |
 | `src/types.ts` | wire + normalized models (v1/v2) | 1–2 |
 | `src/errors.ts` | error taxonomy | 1 |
 | `src/normalize.ts` | v1→normalized, errlist code fallback | 2 |
@@ -48,6 +51,7 @@ credentials, then polls `{access}/accounts`. Facts and quirks: [maps/external.md
 ## Build & toolchain
 
 tsup (ESM+CJS+dts), vitest (unit hermetic; integration opt-in), eslint strictTypeChecked,
-prettier. CI (GitHub Actions) runs lint/typecheck/test/build/pack on Node 20+22 and
-runtime smokes on Bun/Deno. Stage workflow: implement → review gates A/B/C green → commit+push+tag.
+prettier. CI (GitHub Actions) runs lint/typecheck/build/coverage/pack on Node 22 and a
+runtime matrix (Node 22+24, Bun, Deno) builds and smokes the bundle. Stage workflow:
+implement → review gates A/B/C green → commit+push+tag.
 See [features/simplefin-sdk.md](features/simplefin-sdk.md).

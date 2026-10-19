@@ -12,10 +12,13 @@ code: [test/, vitest.config.ts, .github/workflows/ci.yml]
 
 1. **Unit (hermetic, default `npm test`)** — every HTTP interaction mocked via injected
    `fetch`. Fixtures recorded from live bridge responses (see external.md provenance).
-   No network in CI. Coverage thresholds 90% (lines/functions/branches/statements).
-2. **Toolchain tests** — package.json exports map vs tsup output; guards for isomorphism
-   (no `node:` imports in `src/`).
-3. **Runtime smoke** — built ESM bundle imported under Node 20/22, Bun, Deno in CI
+   No network in CI. Coverage thresholds (90%) run in CI via `npm run test:coverage`.
+2. **Toolchain tests** — package.json self-consistency (exports map vs manifest fields,
+   shipped files, engines floor), identity/version lockstep with `src/index.ts`, and —
+   when `dist/` is present — that export targets actually exist. Isomorphism of `src/`
+   is enforced by the separate `tsconfig.src.json` typecheck program plus a
+   `no-restricted-imports` lint rule, not by tests.
+3. **Runtime smoke** — built ESM bundle imported under Node 22/24, Bun, Deno in CI
    (`scripts/smoke.mjs`). Proves the zero-dep/isomorphic promise.
 4. **Integration (opt-in, never in PR CI)** — `SIMPLEFIN_INTEGRATION=1`: claims a fresh
    demo token from `beta-bridge.simplefin.org` developer page and runs claim→accounts
