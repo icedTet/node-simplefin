@@ -32,14 +32,12 @@ Depended on by: [[modules/client]]. Related: [[maps/external]] (v1/v2 field tabl
 - Stage 2 adds `normalizeV2` (conn_id, errlist→errors projection with naked-prefix
   fallback, holdings/passthrough capture) behind the same AccountSet type; the
   normalization invariant is a Gate-C target every stage.
-
-## Implementation pointers
-`src/normalize.ts` — `isWireAccountSetV1` predicate; `orgToConnection` holds the dedupe key.
-
-## Constraints
 - Strictness stance: `null` or wrong-typed optional fields **reject the whole payload**
   (TransportError) rather than normalize to undefined — no provenance shows bridges send
   nulls; if live v2-shaped data disagrees, revisit with a recorded fixture (Stage 3).
+
+## Implementation pointers
+`src/normalize.ts` — `isWireAccountSetV1` predicate; `orgToConnection` holds the dedupe key.
 
 ## Known gaps
 - v2 passthrough capture (`holdings`, `payee`, `memo`, `mcc`, `x-api-message`): Stage 2.

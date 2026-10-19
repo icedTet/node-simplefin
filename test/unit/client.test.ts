@@ -169,6 +169,22 @@ describe('SimplefinClient payload validation', () => {
         ],
       },
     ],
+    [
+      'array extra',
+      { accounts: [{ id: 'a', name: 'A', currency: 'USD', balance: '1', extra: [] }] },
+    ],
+    [
+      'null optional field',
+      {
+        accounts: [
+          { id: 'a', name: 'A', currency: 'USD', balance: '1', 'available-balance': null },
+        ],
+      },
+    ],
+    [
+      'string org',
+      { accounts: [{ id: 'a', name: 'A', currency: 'USD', balance: '1', org: 'nope' }] },
+    ],
   ] as const) {
     it(`raises TransportError for a 200 payload that is not a v1 AccountSet: ${label}`, async () => {
       const { fetch } = mockFetch(jsonResponse(200, payload));

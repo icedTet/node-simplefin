@@ -104,9 +104,14 @@ describe('claim hardening (gate rounds)', () => {
     expect(error).not.toBeInstanceOf(ClaimError);
     expect((error as { status?: number }).status).toBe(403);
 
-    const bare = new Response('Forbidden (was it already claimed?)', { status: 403 });
+    // Byte-body Response carries no default content-type (string bodies would set
+    // text/plain), so this genuinely exercises the `!ct && Forbidden…` fallback arm.
+    const noCt = new Response(new TextEncoder().encode('Forbidden (was it already claimed?)'), {
+      status: 403,
+    });
+    expect(noCt.headers.get('content-type')).toBeNull();
     await expect(
-      claim(encodeSetupToken(CLAIM_URL), { fetch: mockFetch(bare).fetch }),
+      claim(encodeSetupToken(CLAIM_URL), { fetch: mockFetch(noCt).fetch }),
     ).rejects.toBeInstanceOf(ClaimError);
   });
 
