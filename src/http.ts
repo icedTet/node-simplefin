@@ -1,7 +1,7 @@
 // intent: intent/modules/http.md
 // The single place fetch touches the data API. Decision precedence (intent/testing.md):
 // off-origin responses are refused; protocol-error bodies are inspected before a 403 is
-// allowed to mean "revoked"; success requires a JSON object the normalizer can trust.
+// allowed to mean "revoked"; success requires a JSON content-type (shape gate: normalizer).
 
 import type { AccessUrl } from './access-url';
 import {
@@ -100,9 +100,10 @@ export async function requestJson<T>(
     ...options.headers,
   };
 
+  const doFetch = resolveFetch(options.fetch);
   let response: Response;
   try {
-    response = await resolveFetch(options.fetch)(url.href, {
+    response = await doFetch(url.href, {
       method: 'GET',
       headers,
       ...(options.signal ? { signal: options.signal } : {}),

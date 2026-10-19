@@ -62,8 +62,7 @@ export class ServerError extends HttpError {}
 export class TransportError extends SimplefinError {
   readonly status?: number;
   constructor(message: string, options?: { status?: number; cause?: unknown }) {
-    super(message);
+    super(message, options);
     this.status = options?.status;
-    if (options?.cause !== undefined) this.cause = options.cause;
   }
 }

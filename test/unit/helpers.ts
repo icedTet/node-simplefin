@@ -35,7 +35,8 @@ export function mockFetch(...responses: Response[]): MockedFetch {
     if (init?.signal?.aborted) {
       return Promise.reject(new Error('The operation was aborted'));
     }
-    const stored = responses[Math.min(index, responses.length - 1)]!;
+    const stored = responses.at(Math.min(index, responses.length - 1));
+    if (!stored) throw new Error('mockFetch requires at least one response');
     index += 1;
     const clone = stored.clone();
     if (stored.url) Object.defineProperty(clone, 'url', { value: stored.url });

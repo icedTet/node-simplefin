@@ -72,7 +72,10 @@ function isWireTransaction(value: unknown): value is WireTransaction {
     typeof value.id === 'string' &&
     typeof value.posted === 'number' &&
     typeof value.amount === 'string' &&
-    typeof value.description === 'string'
+    typeof value.description === 'string' &&
+    optional(value.transacted_at, 'number') &&
+    optional(value.pending, 'boolean') &&
+    optional(value.extra, 'object')
   );
 }
 
@@ -93,8 +96,27 @@ function isWireAccountSetV1(value: unknown): value is WireAccountSetV1 {
       typeof account.name === 'string' &&
       typeof account.currency === 'string' &&
       typeof account.balance === 'string' &&
+      optional(account['available-balance'], 'string') &&
+      optional(account['balance-date'], 'number') &&
+      optional(account.extra, 'object') &&
+      (account.org === undefined || isWireOrg(account.org)) &&
       (account.transactions === undefined ||
         (Array.isArray(account.transactions) && account.transactions.every(isWireTransaction))),
+  );
+}
+
+function optional(value: unknown, type: 'string' | 'number' | 'boolean' | 'object'): boolean {
+  return value === undefined || typeof value === type;
+}
+
+function isWireOrg(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return (
+    optional(value.domain, 'string') &&
+    optional(value.name, 'string') &&
+    optional(value.url, 'string') &&
+    optional(value.id, 'string') &&
+    optional(value['sfin-url'], 'string')
   );
 }
 

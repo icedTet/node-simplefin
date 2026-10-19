@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { claim } from '../../src/claim';
 import { ClaimError, InvalidTokenError, TransportError } from '../../src/errors';
 import { encodeSetupToken, htmlResponse, mockFetch, textResponse } from './helpers';
@@ -70,7 +70,16 @@ describe('claim', () => {
   });
 });
 
-describe('claim hardening (gate round 1)', () => {
+describe('claim hardening (gate rounds)', () => {
+  it('surfaces missing-fetch environment misuse as TypeError, not TransportError', async () => {
+    vi.stubGlobal('fetch', undefined);
+    try {
+      await expect(claim(encodeSetupToken(CLAIM_URL))).rejects.toBeInstanceOf(TypeError);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('rejects credential-bearing claim URLs before any network call', async () => {
     const { calls, fetch } = mockFetch(textResponse(200, ACCESS_URL));
     await expect(
@@ -93,6 +102,7 @@ describe('claim hardening (gate round 1)', () => {
       (e: unknown) => e as Error,
     );
     expect(error).not.toBeInstanceOf(ClaimError);
+    expect((error as { status?: number }).status).toBe(403);
 
     const bare = new Response('Forbidden (was it already claimed?)', { status: 403 });
     await expect(

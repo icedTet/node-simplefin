@@ -42,10 +42,11 @@ export async function claim(setupToken: string, options: ClaimOptions = {}): Pro
   }
   claimUrl = rewriteLegacyHost(claimUrl);
 
+  const doFetch = resolveFetch(options.fetch);
   let response: Response;
   try {
     // No custom headers: the claim POST must stay a CORS-simple request (external.md).
-    response = await resolveFetch(options.fetch)(claimUrl.href, { method: 'POST' });
+    response = await doFetch(claimUrl.href, { method: 'POST' });
   } catch (cause) {
     throw new TransportError('Claim request failed', { cause });
   }
@@ -67,6 +68,7 @@ export async function claim(setupToken: string, options: ClaimOptions = {}): Pro
     );
   }
   if (!response.ok) {
+    response.body?.cancel().catch(() => undefined);
     throw new TransportError(`Unexpected claim response status ${response.status}`, {
       status: response.status,
     });

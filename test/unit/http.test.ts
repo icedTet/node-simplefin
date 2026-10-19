@@ -26,6 +26,7 @@ describe('requestJson', () => {
     const headers = calls[0]!.init?.headers as Record<string, string>;
     // base64("demo:demo")
     expect(headers.Authorization).toBe('Basic ZGVtbzpkZW1v');
+    expect(headers.Accept).toBe('application/json');
   });
 
   it('rewrites the legacy bridge host on data requests too', async () => {
@@ -173,6 +174,25 @@ describe('requestJson', () => {
     );
     expect(error).toBeInstanceOf(AccessRevokedError);
     expect((error as AccessRevokedError).errors).toEqual(['No credentials provided']);
+  });
+
+  it('surfaces missing-fetch environment misuse as TypeError, not TransportError', async () => {
+    vi.stubGlobal('fetch', undefined);
+    try {
+      await expect(requestJson(access, 'accounts', new URLSearchParams())).rejects.toBeInstanceOf(
+        TypeError,
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('routes the never-sent 401 to the generic HttpError without special-casing', async () => {
+    const { fetch } = mockFetch(jsonResponse(401, { errors: ['whoops'], accounts: [] }));
+    const error = await expectError(
+      requestJson(access, 'accounts', new URLSearchParams(), { fetch }),
+    );
+    expect(error.name).toBe('HttpError');
   });
 
   it('falls back to the ambient fetch when none is injected', async () => {
