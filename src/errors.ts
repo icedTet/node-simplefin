@@ -8,15 +8,20 @@ export class SimplefinError extends Error {
   }
 }
 
-/** A setup token that is not decodable base64 or not an HTTPS claim URL. */
+/** A setup token that is not decodable base64 or not a well-formed HTTPS claim URL. */
 export class InvalidTokenError extends SimplefinError {}
 
-/** A claim request was refused; the setup token is used, missing, or compromised. */
+/** A malformed or insecure access URL passed to parseAccessUrl/SimplefinClient. */
+export class InvalidAccessUrlError extends SimplefinError {}
+
+export const CLAIM_REFUSAL_MESSAGE =
+  'Claim refused (403): the setup token was already used, does not exist, or may be ' +
+  'compromised. Ask the user for a fresh token and have them disable the old one.';
+
+/** A claim request refused with the protocol's text/plain refusal; the setup token is
+ *  used, missing, or compromised. (An edge/UA 403 is a TransportError, not this.) */
 export class ClaimError extends SimplefinError {
-  constructor(
-    message = 'Claim refused (403): the setup token was already used, does not ' +
-      'exist, or may be compromised. Ask the user for a fresh token and have them disable the old one.',
-  ) {
+  constructor(message = CLAIM_REFUSAL_MESSAGE) {
     super(message);
   }
 }
@@ -24,8 +29,9 @@ export class ClaimError extends SimplefinError {
 /** Base for errors that carry an HTTP status from the API. */
 export class HttpError extends SimplefinError {
   readonly status: number;
+  /** Origin + path of the endpoint, query string removed (never log account ids). */
   readonly url: string;
-  /** Protocol display strings from the response body (already sanitized by callers for HTML). */
+  /** Display strings from `errors`/`errlist` bodies — sanitize before rendering. */
   readonly errors: string[];
 
   constructor(message: string, status: number, url: string, errors: string[] = []) {
@@ -51,12 +57,13 @@ export class RateLimitError extends HttpError {}
 /** 5xx — server-side failure; retry later. */
 export class ServerError extends HttpError {}
 
-/** Transport-level failure: network error, cross-host redirect, or a non-protocol response
- *  (e.g. an edge/Cloudflare 403 caused by the runtime's User-Agent — NOT a revoked token). */
+/** Transport-level failure: network error, off-origin response, non-protocol body, or a
+ *  403 lacking a protocol error body (e.g. Cloudflare edge/UA block — NOT a revoked token). */
 export class TransportError extends SimplefinError {
   readonly status?: number;
   constructor(message: string, options?: { status?: number; cause?: unknown }) {
-    super(message, options);
+    super(message);
     this.status = options?.status;
+    if (options?.cause !== undefined) this.cause = options.cause;
   }
 }
