@@ -1,8 +1,9 @@
 // intent: intent/modules/http.md
-// The single place fetch touches the data API. Order of checks per intent/testing.md:
-// status → protocol-error-body detection → JSON parse; never let a non-protocol response
-// masquerade as an auth outcome.
+// The single place fetch touches the data API. Decision precedence (intent/testing.md):
+// off-origin responses are refused; protocol-error bodies are inspected before a 403 is
+// allowed to mean "revoked"; success requires a JSON object the normalizer can trust.
 
+import type { AccessUrl } from './access-url';
 import {
   AccessRevokedError,
   BadRequestError,
@@ -12,8 +13,13 @@ import {
   ServerError,
   TransportError,
 } from './errors';
-import { basicAuth, resolveFetch, rewriteLegacyHost, type FetchLike } from './net';
-import type { AccessUrl } from './access-url';
+import {
+  assertSameOrigin,
+  basicAuth,
+  resolveFetch,
+  rewriteLegacyHost,
+  type FetchLike,
+} from './net';
 
 export interface RequestOptions {
   fetch?: FetchLike;
@@ -21,9 +27,18 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
-function readProtocolBody(body: unknown): { errors: string[]; isProtocol: boolean } {
-  if (!body || typeof body !== 'object' || Array.isArray(body))
+function readProtocolBody(input: unknown): { errors: string[]; isProtocol: boolean } {
+  let body = input;
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body) as unknown;
+    } catch {
+      return { errors: [], isProtocol: false };
+    }
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return { errors: [], isProtocol: false };
+  }
   const record = body as Record<string, unknown>;
   const errors: string[] = [];
   let isProtocol = false;
@@ -67,7 +82,8 @@ function classifyStatus(status: number, url: string, body: unknown): never {
   throw new HttpError(message('Unexpected status'), status, url, errors);
 }
 
-/** GET `{root}{path}?{query}` against an access URL; returns the parsed JSON body. */
+/** GET `{root}{path}?{query}` against an access URL; returns the parsed wire body.
+ *  Shape validation belongs to the normalizer, not this generic gateway. */
 export async function requestJson<T>(
   access: AccessUrl,
   path: string,
@@ -76,6 +92,8 @@ export async function requestJson<T>(
 ): Promise<T> {
   const root = rewriteLegacyHost(access.root);
   const url = new URL(`${path}?${query}`, root);
+  // Error identity: origin+path only; the query can carry account ids (errors.md).
+  const safeUrl = url.origin + url.pathname;
   const headers: Record<string, string> = {
     Authorization: basicAuth(access.username, access.password),
     Accept: 'application/json',
@@ -90,18 +108,9 @@ export async function requestJson<T>(
       ...(options.signal ? { signal: options.signal } : {}),
     });
   } catch (cause) {
-    throw new TransportError(`Request to ${url.href} failed`, { cause });
+    throw new TransportError(`Request to ${safeUrl} failed`, { cause });
   }
-
-  if (response.url) {
-    const finalHost = new URL(response.url).hostname;
-    if (finalHost !== url.hostname) {
-      throw new TransportError(
-        `Refusing cross-host redirect: ${url.hostname} responded from ${finalHost}`,
-        { status: response.status },
-      );
-    }
-  }
+  assertSameOrigin(response, url);
 
   const contentType = response.headers.get('content-type') ?? '';
   const isJson = contentType.includes('application/json');
@@ -113,7 +122,7 @@ export async function requestJson<T>(
     body = undefined;
   }
 
-  if (!response.ok) classifyStatus(response.status, url.href, body);
+  if (!response.ok) classifyStatus(response.status, safeUrl, body);
   if (!isJson) {
     throw new TransportError(
       `Expected application/json but got "${contentType || 'unknown'}" (HTTP ${response.status})`,

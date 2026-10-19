@@ -7,6 +7,7 @@ export { parseAccessUrl, type AccessUrl } from './access-url';
 export {
   SimplefinError,
   InvalidTokenError,
+  InvalidAccessUrlError,
   ClaimError,
   HttpError,
   BadRequestError,

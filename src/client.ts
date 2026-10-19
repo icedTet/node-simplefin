@@ -4,7 +4,7 @@
 import { parseAccessUrl, type AccessUrl } from './access-url';
 import { requestJson, type RequestOptions } from './http';
 import { normalizeV1 } from './normalize';
-import type { AccountSet, WireAccountSetV1 } from './types';
+import type { AccountSet } from './types';
 
 export interface GetAccountsOptions {
   /** Inclusive lower bound (transactions `posted` on/after). */
@@ -44,8 +44,8 @@ export class SimplefinClient {
       : (getOptions.account ?? [])) {
       query.append('account', id);
     }
-    const wire = await requestJson<WireAccountSetV1>(this.access, 'accounts', query, this.options);
-    return normalizeV1(wire);
+    const body = await requestJson<unknown>(this.access, 'accounts', query, this.options);
+    return normalizeV1(body);
   }
 }
 
