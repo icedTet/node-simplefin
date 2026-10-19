@@ -2,7 +2,8 @@
 
 Isomorphic TypeScript client for the [SimpleFIN](https://www.simplefin.org/protocol.html) protocol — read-only access to bank accounts and transactions via claim/setup tokens.
 
-> Status: under construction. See `intent/` for the living spec and `intent/features/simplefin-sdk.md` for rollout state.
+> Status: Stage 1 (v1 client) landed and gate-reviewed; v2 support + integration suite in
+> progress. See `intent/` for the living spec and `intent/features/simplefin-sdk.md`.
 
 ## Install
 
@@ -17,8 +18,14 @@ import { claim, SimplefinClient } from 'node-simplefin';
 
 const accessUrl = await claim(setupTokenFromUser);
 const client = new SimplefinClient(accessUrl);
-const data = await client.getAccounts({ version: 2, pending: true });
+const data = await client.getAccounts({
+  startDate: new Date('2026-01-01'),
+  pending: true,
+});
 ```
+
+`data` is version-independent (`accounts`, `connections`, string balances). The v2 wire
+protocol is opt-in and lands in Stage 2.
 
 ## Requirements
 

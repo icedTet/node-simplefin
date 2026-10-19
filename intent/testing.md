@@ -11,7 +11,8 @@ code: [test/, scripts/smoke.mjs, vitest.config.ts, .github/workflows/ci.yml]
 ## Layers
 
 1. **Unit (hermetic, default `npm test`)** — every HTTP interaction mocked via injected
-   `fetch`. Fixtures recorded from live bridge responses (see external.md provenance).
+   `fetch`. Hand-written fixtures today; live-recording harness for `test/fixtures/`
+   lands with Stage 3 (see external.md provenance).
    (Stage 1+) No network in CI. Coverage thresholds (90%) run in CI via
    `npm run test:coverage`.
 2. **Toolchain tests** — package.json self-consistency (exports map vs manifest fields,
@@ -23,7 +24,9 @@ code: [test/, scripts/smoke.mjs, vitest.config.ts, .github/workflows/ci.yml]
    (`scripts/smoke.mjs`). Proves the zero-dep/isomorphic promise.
 4. **Integration (opt-in, never in PR CI)** — `SIMPLEFIN_INTEGRATION=1`: claims a fresh
    demo token from `beta-bridge.simplefin.org` developer page and runs claim→accounts
-   e2e for v1 and v2 shapes, incl. 90-day-cap errlist and revoked-token path if feasible.
+   e2e for v1 and v2 shapes, incl. 90-day-cap errlist, revoked-token path if feasible,
+   and re-verification of the claim-path edge/UA-403 vs protocol-refusal discrimination
+   against the live Cloudflare-fronted edge (promised by modules/claim.md).
 
 ## What must never regress (contract invariants)
 
@@ -34,7 +37,9 @@ code: [test/, scripts/smoke.mjs, vitest.config.ts, .github/workflows/ci.yml]
   without either (e.g. Cloudflare edge/UA block) must not be reported as revocation.
   401 is never produced.
 - `pending=0` is treated as *include pending* (presence check), omit to exclude.
-- Unknown `errlist` codes fall back to naked-prefix handling (`act.failedXYZ` behaves as `act.`).
+- (Stage 2) Unknown `errlist` codes fall back to naked-prefix handling
+  (`act.failedXYZ` behaves as `act.`). Error-path `msg` extraction from `errlist` bodies
+  is active now (http.md).
 - Redirects are never followed across hosts; userinfo never reaches a `fetch` URL.
 - Claim POST sends no custom headers (CORS-simple); GETs add only `Authorization` +
   `Accept` (both CORS-safe). Runtime-native UAs are live-verified acceptable (external.md).

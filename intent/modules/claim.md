@@ -18,9 +18,10 @@ URL. The only stateful protocol step; everything else is stateless reads.
   an https URL; https required; **userinfo forbidden** (claim URLs carry none — passing
   creds to fetch would echo them via rejection causes).
 - POST with **no custom headers** (must stay CORS-simple: preflight would 404 on claim).
-- 403 **with the protocol's `text/plain` refusal** (or bodyless `Forbidden…`) → `ClaimError`.
-  A 403 with any other body (Cloudflare edge/UA page) → `TransportError` — never a false
-  compromise alarm.
+- 403 whose body is the protocol's `text/plain` refusal → `ClaimError`. The regex
+  `Forbidden…` fallback arm applies only when the response carries **no** content-type
+  (spec-conformant string bodies default to `text/plain`, so arm one covers them). Any
+  other 403 (Cloudflare edge/UA page) → `TransportError` — never a false compromise alarm.
 - Off-origin response (redirect followed elsewhere) → `TransportError` (net.assertSameOrigin).
 - Other statuses / malformed Access-URL bodies → `TransportError`.
 - Rewrites `bridge.simplefin.org` → beta host up front (legacy host 302s drop the path).

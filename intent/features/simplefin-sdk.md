@@ -40,7 +40,7 @@ wiki (subagent) → loop until green → commit, push, tag `stage-N`, CI green b
 | 0 | Toolchain, CI, wiki bootstrap | lint/typecheck/test/build/smoke/pack green locally; CI workflow committed |
 | 1 | claim + access-url + http + client (v1) + errors | unit tests incl. all error mappings; scenario tests below pass |
 | 2 | v2 + normalize + passthrough fields | version-normalization invariants tested |
-| 3 | full suite, integration opt-in, sync helpers | coverage ≥90%; integration run documented in this page |
+| 3 | full suite, integration opt-in, sync helpers | coverage ≥90%; integration run documented in this page incl. live edge/UA-403 discrimination re-verify (modules/claim.md) |
 | 4 | README/docs/CHANGELOG, publish config | `npm pack` clean; docs match API |
 
 ## Contract — behavioral scenarios
@@ -87,6 +87,8 @@ with `provenance: declared`, README quickstart copy-pastable.
 ## [2026-10-19] review | Round 3: Gate A APPROVE, Gate C PASS (3 LOW polish: residual unconditional claim-403 wording, stale stage-0 tag, incomplete backstop citation) — all fixed; stage-0 tag moved to green HEAD. Stage 0 shipped.
 ## [2026-10-19] implement | Stage 1: claim/access-url/net/http/client/normalize/types/errors landed; 39 unit tests, coverage 92-100%, all module pages written; UA stance corrected to runtime-native (no custom header; CORS-safe).
 ## [2026-10-19] review | Stage-1 gates: A + C both NOT READY (13+10 findings); B adjudicated with Node/Bun/Deno runtime probes. Validated+fixed: claim userinfo gate, claim+http off-origin refusal (origin, not hostname — closes port/scheme drift), 403 protocol-body discrimination on the claim path too, normalizeV1 unknown-input boundary predicate (crash→TransportError), InvalidAccessUrlError taxonomy completion, error url query-stripping, URIError leak closed, mockFetch clone-per-call, hasOwn/Map host table. Doc-only: errlist scenario re-scoped to Stage 2 (wire default is v1 — feature page was mis-scoped), stale UA/RedirectError contract bullets rewritten, http ordering prose aligned. FALSE-POSITIVE: none material; manual-redirect redesign rejected (browser-divergent, no security gain). Round 2 pending.
+
+## [2026-10-19] review | Stage-1 round 2: A APPROVE (3 LOW follow-ups taken immediately: resolveFetch hoisting so env-misuse stays TypeError, claim no-CT branch testable+tested, predicate optional-field validation; nits: cause-enumerability, ct slice, body cancel fire-and-forget after a teed-clone hang regression, comment accuracy). C NOT READY docs-only: testing.md errlist Stage-2 tag, fixtures wording, claim.md branch semantics, http.md depended-on-by, integration promise mirrored, README example aligned. stage-1 tag moves to green HEAD after round 3 confirmation.
 
 ## Outcome
 

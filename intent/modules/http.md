@@ -27,7 +27,8 @@ trap, status taxonomy) in one reviewable place so no other module touches `fetch
   extracted from both v1 (`errors`) and v2 (`errlist[].msg`) shapes.
 
 ## Dependencies
-Depends on: [[modules/net]], [[modules/errors]], [[modules/access-url]]. Related: [[maps/external]]
+Depends on: [[modules/net]], [[modules/errors]], [[modules/access-url]].
+Depended on by: [[modules/client]]. Related: [[maps/external]]
 
 ## Constraints
 - Never sends userinfo in URLs; never trusts an off-origin response.
