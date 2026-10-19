@@ -24,7 +24,9 @@ code: [test/, scripts/smoke.mjs, vitest.config.ts, .github/workflows/ci.yml]
 4. **Integration (opt-in, never in PR CI)** — `SIMPLEFIN_INTEGRATION=1 npx vitest run
    test/integration`: claims a fresh one-time demo token scraped from the developer page
    and runs claim→accounts e2e for v1 and v2 shapes plus a windowed `collectAccounts`
-   with overlap-dedupe verification. Demonstrated green 2026-10-19.
+   with overlap-dedupe verification. Demonstrated green 2026-10-19 (twice: token rotation
+   confirmed). Each run consumes one demo token; reruns reload the developer page for a
+   freshly generated one (external.md). Token-rotation surprises surface as ClaimError.
    Still-open re-verification promises (not scriptable on the shared demo token):
    live edge/UA-403 discrimination (modules/claim.md) and the scripted 90-day-cap
    errlist path — the cap was manually curl-verified during stage 2.

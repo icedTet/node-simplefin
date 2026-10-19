@@ -40,7 +40,7 @@ wiki (subagent) → loop until green → commit, push, tag `stage-N`, CI green b
 | 0 | Toolchain, CI, wiki bootstrap | lint/typecheck/test/build/smoke/pack green locally; CI workflow committed |
 | 1 | claim + access-url + http + client (v1) + errors | unit tests incl. all error mappings; scenario tests below pass |
 | 2 | v2 + normalize + passthrough fields | version-normalization invariants tested — landed, gates pending |
-| 3 | full suite, integration opt-in, sync helpers | ✓ 92 unit + fixtures + live integration demonstrated 2026-10-19; edge/UA-403 live re-verify deferred to a private-token run (documented in testing.md) |
+| 3 | full suite, integration opt-in, sync helpers | ✓ 96 unit + fixtures + live integration demonstrated 2026-10-19; edge/UA-403 live re-verify deferred to a private-token run (documented in testing.md) |
 | 4 | README/docs/CHANGELOG, publish config | `npm pack` clean; docs match API |
 
 ## Contract — behavioral scenarios
@@ -73,10 +73,14 @@ wiki (subagent) → loop until green → commit, push, tag `stage-N`, CI green b
   - Given a 200 payload that is not a v1 AccountSet (shape or entry types wrong), Then
     `TransportError`, not a crash deep in mapping.
 - **sync (stage 3) ✓**
-  - Given a range >90 days, Then `splitWindows` yields ≤90-day windows with ≥5-day
-    overlaps, gapless and chronological.
+  - Given a range >45 days, Then `splitWindows` yields windows each ≤45d (default;
+    ≤maxSpanSeconds always), overlapping ~5d, gapless, chronological — never tripping
+    the server's recommended-range warning, let alone the 90d cap.
+  - Given a range whose window count exceeds maxRequests (default 24/day), Then
+    `RangeError` before any network call.
   - Given overlapping windows return the same transaction, Then `collectAccounts`
-    merges it once; later windows win per account/txn id; fetches are sequential.
+    merges it once (later value wins), sorted by `posted` ascending; fetches are
+    sequential; missing `startDate` or too-many-windows throws before fetching.
 
 ## Definition of Done (v0.1.0 ship)
 
@@ -108,4 +112,6 @@ with `provenance: declared`, README quickstart copy-pastable.
 ## [2026-10-19] review | Stage-2 round 3: Gate A APPROVE (items closed; live SDK v1+v2 demo check passes). Gate C final 2 doc nits fixed here (log phantom touched-item; types.md back-edges for wire/errors type-only imports). Stage 2 green.
 
 ## [2026-10-19] implement | Stage 3 landed: sync helpers, fixtures harness, integration suite green live once (see testing.md for the two deferred re-verify promises).
+
+## [2026-10-19] review | Stage-3 round 1 resolutions complete (commits 3258b9b..HEAD): geometry ≤maxSpan default-45d (live-confirmed rec + cap rows), required startDate + maxRequests guard, deterministic v1 conn ids, posted-sorted merge, attribution errlist keys, guarded scrape, full doc reconciliation incl. late sync.md/testing.md/features fixes. 96 unit + integration green.
 
