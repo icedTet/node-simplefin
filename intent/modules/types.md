@@ -18,12 +18,14 @@ The typed contract between wire and callers: wire shapes mirror the protocol JSO
   `transactedAt`).
 - `Transaction.amount` positive = deposit into the account.
 - Wire types are input-only (we never send JSON bodies); public types are readonly.
-- v2 wire types added (`WireAccountSetV2`, `WireConnectionV2`, `WireErrorEntry`,
-  `WireTransactionV2` with payee/memo/mcc); v1 wire names gained explicit `V1` suffixes.
+- v2 wire types added (`WireAccountSetV2`, `WireConnectionV2`, `WireErrorEntry`);
+  transactions share `WireTransactionBase` (payee/memo/mcc live on both versions,
+  `string | null`; null ≡ absent — external.md census).
 - Public model additions: `AccountSet.errlist: ProtocolError[]`,
   `xApiMessage?`, `Account.holdings?`, `Connection.orgId?`, `Transaction.payee/memo/mcc?`.
-  Index signatures appear only on genuinely schemaless captures (`Holding`,
-  `WireConnectionV2`) — a deliberate, documented exception to "avoid unknown".
+  Index signatures appear only on genuinely schemaless captures (`Holding`, the
+  `Wire…Set` types, public `Connection` for v2 raw passthrough) — a deliberate,
+  documented exception to "avoid unknown". 
 - Optional public fields appear via conditional spread — distinguish "absent" from "empty".
 
 ## Dependencies

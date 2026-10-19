@@ -43,7 +43,7 @@ return 404 with no cursor/status headers (don't implement them).
 | `pending` | spec: include pending iff `pending=1` provided, default excluded; live bridge checks **presence** (`pending=0` behaves like 1 — omit to exclude) | spec v1/v2 + live (bridge impl) |
 | `account` | filter by id; repeatable; unknown id → 200 empty | spec v2 + live |
 | `balances-only` | `1` = no transaction data per spec; live keeps `transactions` key present but empty | spec v2; empty-key detail live-only |
-| `version` | `2` selects v2 schema; default serves v1 | spec + live |
+| `version` | `2` selects v2 schema; default serves v1. Explicit `1` (and unknown values like `3`) serve v1 byte-identical to omitted — no server allergy observed | spec + live probes 2026-10-19 |
 
 ## Response model differences (v1 → v2)
 
@@ -53,9 +53,13 @@ return 404 with no cursor/status headers (don't implement them).
 | per-account `org {domain,name,sfin-url,...}` | top-level `connections[] {conn_id,name,org_id,org_url?,sfin_url}`; account gains required `conn_id` | spec v2.0.0 |
 | `amount` numeric **string**, positive = deposit; `posted` unix int, **0 when pending**; `available-balance` optional; custom currency = `currency` is a URL → GET `{name,abbr}` | same fields | spec v1/v2 |
 
-Undocumented-but-live fields (capture as optional passthrough, don't depend): `holdings[]`
-(bridge-issues: "don't depend on its schema"), transaction `payee`, `memo`, `mcc`,
-`transacted_at`, `extra`, top-level `x-api-message: string[]`, connection `org_name`. Live.
+Undocumented-but-live fields (capture as optional passthrough on BOTH versions, don't
+depend): `holdings[]` (present on live v1 too; bridge-issues: "don't depend on its
+schema"), transaction `payee`, `memo`, `mcc`, `transacted_at`, `extra`, top-level
+`x-api-message: string[]` (present without `start-date`), connection `org_name`.
+**Live census (v1 and v2, demo): `mcc` is the only key ever observed `null`** (3/162 txns)
+— the SDK treats null as absent for payee/memo/mcc, everything else stays strict-typed.
+Live probes 2026-10-19.
 
 ## Status codes
 

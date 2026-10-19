@@ -37,9 +37,15 @@ code: [test/, scripts/smoke.mjs, vitest.config.ts, .github/workflows/ci.yml]
   without either (e.g. Cloudflare edge/UA block) must not be reported as revocation.
   401 is never produced.
 - `pending=0` is treated as *include pending* (presence check), omit to exclude.
-- (Stage 2) Unknown `errlist` codes fall back to naked-prefix handling
-  (`act.failedXYZ` behaves as `act.`). Error-path `msg` extraction from `errlist` bodies
-  is active now (http.md).
+- Unknown `errlist` codes fall back to naked-prefix handling
+  (`act.failedXYZ` behaves as `act.`); error metadata is extracted leniently (a malformed
+  *optional* field never deletes the msg) while payload data stays strict (wire.md/normalize.md).
+- v1↔v2 symmetry: identical data rendered through both wire shapes yields identical
+  models modulo connection-id source (derived-fixture test, not hand-duplicated).
+- Live passthroughs (`holdings`, `x-api-message`, connection extras) are captured on
+  **both** versions and never fail a payload; `mcc: null` ≡ absent (recorded live census).
+- `balances-only` follows the same presence semantics as `pending`.
+- 403-with-key-presence-only (`{"errlist":null}`) is a TransportError, never revocation.
 - Redirects are never followed across hosts; userinfo never reaches a `fetch` URL.
 - Claim POST sends no custom headers (CORS-simple); GETs add `Accept` (safelisted) +
   `Authorization` (allowed by the bridge's preflight, external.md). Runtime-native UAs are

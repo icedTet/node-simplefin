@@ -37,6 +37,7 @@ Depends on: [[modules/http]], [[modules/normalize]], [[modules/access-url]], [[m
 
 ## Known gaps
 - Rate-limit budgeting helper: Stage 3 (`src/sync.ts`).
-- Sending an explicit `version=1` (rather than omitting) follows external.md's "prefer the
-  version request param" guidance; if any first-party-institution server proves allergic
-  to the param, revisit. (Watch Stage 3 live runs.)
+- Explicit `version=1` pinning is an SDK hedge against the documented default flip (v1
+  sunset ≥1y after 2026-03-19, GH discussion #33), with server tolerance recorded in
+  external.md (live probes: `1`/unknown values → v1 byte-identical to omitted). Revisit
+  if any institution server disagrees (Stage 3 live runs).

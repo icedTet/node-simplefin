@@ -18,13 +18,13 @@ enters here and either becomes a typed model or a typed error.
   the same AccountSet shape.
 - `errorPrefix(code)` — public helper collapsing `prefix.[subcode]` to `prefix.`;
   unknown subcodes behave like the naked prefix (v2 protocol guidance).
-- v2: server `conn_id` becomes `Connection.id`; accounts link via `connectionId`;
-  a conn_id without a matching connection entry links nothing. `errlist` entries are
-  projected (code/msg/connId/accountId) and their msgs also surface in `errors`.
-  `x-api-message` (string array) is surfaced verbatim, never interpreted.
-  `holdings[]` capture typed known fields + preserve unknown keys.
-- v1: legacy `errors` pass through; a defensive `errlist` projection covers bridges
-  mixing shapes.
+- Both versions: server/synthesized connection ids link via `connectionId` (dangling v2
+  conn_id refs link nothing); `errlist` projected via [[modules/wire]] and msgs surfaced
+  (deduped) in `errors`; `x-api-message` captured leniently; `holdings[]` captured
+  defensively — **never gates the payload** (schema not guaranteed; non-objects drop).
+- v2 connection unknown keys pass through raw (`org_name` survives); typed fields consume
+  the wire key (no duplication).
+- v1↔v2 shared capture: one `normalizeAccountCore` mapper; predicates are type guards.
 - Structural predicates validate accounts
   (id/name/currency/balance strings, optional transactions arrays of well-formed entries,
   string-array `errors`); anything else → `TransportError` — never a deep TypeError.
@@ -43,9 +43,13 @@ Depended on by: [[modules/client]]. Related: [[maps/external]] (v1/v2 field tabl
 
 ## Constraints
 - The normalization invariant is a Gate-C target every stage.
-- Strictness stance: `null` or wrong-typed optional fields **reject the whole payload**
-  (TransportError) rather than normalize to undefined — no provenance shows bridges send
-  nulls; if live v2-shaped data disagrees, revisit with a recorded fixture (Stage 3).
+- Strictness stance (payload data; error metadata is wire.md's domain): wrong-typed
+  optional fields **reject the whole payload** (TransportError) rather than normalize to
+  undefined — no provenance shows bridges send nulls outside the observed one exception
+  below.
+- Null-as-absent carve-out, evidence-scoped: `payee`/`memo`/`mcc` only. Live census
+  (external.md, 2026-10-19): `mcc: null` in v1 AND v2 demo bodies; if other fields ever
+  arrive null in the wild, extend deliberately with a recorded fixture, not silently.
 
 ## Implementation pointers
 `src/normalize.ts` — `isWireAccountSetV1` predicate; `orgToConnection` holds the dedupe key.
