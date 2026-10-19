@@ -22,7 +22,7 @@ orchestration only, all mechanics live in [[modules/http]]/[[modules/normalize]]
 - v1 wire is requested by default; Stage 2 adds `version`.
 
 ## Dependencies
-Depends on: [[modules/http]], [[modules/normalize]], [[modules/access-url]].
+Depends on: [[modules/http]], [[modules/normalize]], [[modules/access-url]], [[modules/types]].
 
 ## Constraints
 - No retry logic here (quota discipline is a consumer/Stage-3 concern; silent retries would

@@ -10,21 +10,20 @@ code: [src/access-url.ts]
 
 ## Intent
 Turn the credential-bearing Access URL string into a structure where the secret is
-addressable but never rides in request URLs (Node fetch rejects userinfo; headers only).
+addressable but never rides in request URLs (Node's fetch rejects userinfo; headers only).
 
 ## Contract
 - `parseAccessUrl(value) → {root: URL (no creds, dir-normalized), username, password, href (redacted)}`.
-- Rejects (TypeError) non-absolute, non-https, or missing username/password.
-- Percent-encoding is decoded exactly once (fetch re-encodes headers? no: creds go into the
-  Basic header raw — wire-identical to curl -u).
+- Rejects with `InvalidAccessUrlError` (a `SimplefinError` — same taxonomy as the rest of
+  the SDK): non-absolute, non-https, missing username or password, invalid percent-escapes.
+- Credentials are percent-decoded exactly once and go only into the Basic auth header.
 
 ## Dependencies
-Depended on by: [[modules/client]], [[modules/http]]. Related: [[modules/claim]]
+Depends on: [[modules/errors]]. Depended on by: [[modules/client]], [[modules/http]].
+Related: [[modules/claim]]
 
 ## Constraints
 - `href` and any toString must never contain the key.
-- Credentials are treated as opaque ASCII in practice but stored decoded (TextEncoder in
-  net.basicAuth handles UTF-8).
 
 ## Implementation pointers
 `src/access-url.ts`

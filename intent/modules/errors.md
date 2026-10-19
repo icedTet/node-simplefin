@@ -13,26 +13,31 @@ Typed outcomes instead of stringly-typed throws, so apps can branch on
 `instanceof` (retry vs. re-link vs. tell-the-user) without parsing messages.
 
 ## Contract
-- Root: `SimplefinError extends Error`; `HttpError` adds `status`, `url`, `errors: string[]`.
-- Taxonomy: `InvalidTokenError` (offline validation), `ClaimError` (403 on claim),
-  `AccessRevokedError` (403 **with protocol body**), `PaymentRequiredError` (402),
-  `RateLimitError` (429), `BadRequestError` (400), `ServerError` (5xx), `TransportError`
-  (network/redirect/content-type/bodyless-403 — "the wire lied", not an auth verdict).
+- Root: `SimplefinError extends Error`; everything user-input- or protocol-related the SDK
+  throws is a descendant — a `catch (e instanceof SimplefinError)` world is closed
+  (plain TypeError only for environment misuse, e.g. no-fetch-and-none-injected).
+- `HttpError` adds `status`, `url` (origin+pathname only — queries excluded), `errors: string[]`.
+- Taxonomy: `InvalidTokenError` (setup token), `InvalidAccessUrlError` (access URL),
+  `ClaimError` (403 with protocol refusal body), `AccessRevokedError` (403 with protocol
+  error body on data), `PaymentRequiredError` (402), `RateLimitError` (429),
+  `BadRequestError` (400), `ServerError` (5xx), `TransportError` (network/off-origin/
+  non-protocol body — "the wire lied", incl. a 403 lacking a protocol error body such as a
+  Cloudflare edge/UA block — never an auth verdict).
 - 401 is never produced by this protocol — none defined.
-- `ClaimError`'s default message carries the compromise guidance required by the spec
-  checklist (external.md security invariants).
+- `ClaimError` default message carries the compromise/disable guidance required by the
+  spec checklist (external.md security invariants).
 
 ## Dependencies
-Produced by: [[modules/http]], [[modules/claim]]. Consumed by everyone. Related: [[maps/external]]
+Depended on by: [[modules/http]], [[modules/claim]], [[modules/net]], [[modules/access-url]],
+[[modules/normalize]]. Related: [[maps/external]]
 
 ## Constraints
-- `name` equals class name (set via `new.target`) — stable for serialization/logging.
-- Error messages must not embed the access URL credentials or secrets from query strings;
-  `HttpError.url` keeps the credential-free root + path only.
+- `name` equals class name (`new.target`) — stable for serialization/logging.
+- Messages/properties must not embed credentials or query strings; `cause` chains must not
+  echo secrets (validated: userinfo rejected pre-network in claim).
 
 ## Implementation pointers
 `src/errors.ts`
 
 ## Known gaps
-- v2 `errlist` structured codes live on the wire side; errors expose only `errors: string[]`
-  until Stage 2 decides (candidates: `code` field or errlist array).
+- v2 `errlist` structured codes (`code` field) attach in Stage 2.

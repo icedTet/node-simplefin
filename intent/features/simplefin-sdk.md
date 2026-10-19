@@ -46,27 +46,29 @@ wiki (subagent) → loop until green → commit, push, tag `stage-N`, CI green b
 ## Contract — behavioral scenarios
 
 - **claim**
-  - Given a valid base64 setup token, When `claim(token)` is called, Then POST (empty body)
-    hits the decoded claim URL and resolves with the trimmed Access URL string.
-  - Given an already-used token, When `claim` gets status 403 **with the protocol's
-    `text/plain` refusal body**, Then a `ClaimError` is thrown whose message tells the user
-    the token may be compromised; a 403 with any other body (edge/UA block) must surface as
-    a transport error, not a false revocation.
-  - Given a setup token decoding to a non-HTTPS URL, When `claim`, Then it throws
-    `InvalidTokenError` before any network call.
+  - Given a valid base64 setup token, When `claim(token)` is called, Then POST (empty body,
+    no custom headers) hits the decoded claim URL and resolves with the trimmed Access URL.
+  - Given a token decoding to a non-https or credential-bearing URL, When `claim`, Then
+    `InvalidTokenError` thrown **before any network call**.
+  - Given a claim 403 with the protocol's text/plain refusal, Then `ClaimError` whose
+    message tells the user the token may be compromised; **a 403 with any other body
+    (edge/UA block) surfaces as `TransportError`, never a false compromise alarm**.
+  - Given a claim response arriving from another origin, Then `TransportError`.
 - **client**
   - Given an access URL, When `getAccounts()`, Then the request carries
-    `Authorization: Basic`, a package User-Agent, and never embeds userinfo in the URL.
+    `Authorization: Basic` + `Accept`, and never embeds userinfo in the URL.
   - Given a revoked token (403 with protocol error body from /accounts), Then
-    `AccessRevokedError` (not 401-based); a bodyless 403 maps to a transport error.
+    `AccessRevokedError` (not 401-based); a bodyless/HTML 403 maps to `TransportError`.
   - Given a 429, Then `RateLimitError`; given 402, `PaymentRequiredError`.
   - Given v1 response, When normalized, Then output shape equals v2-normalized shape:
-    account carries `connId`; org fields appear as a `connection` entry; `errors` strings
-    surface alongside `errlist` with prefix fallback.
+    account carries `connectionId`; org fields appear as a `connection` entry.
+    (v2 `errlist` projection with naked-prefix fallback: Stage 2.)
   - Given any amount/balance, Then its type is `string` and byte-equal to the wire value.
   - Given `pending: false`, Then the request contains **no** `pending` param; given true, `pending=1`.
-  - Given a 302 to a different host, Then no follow-through happens silently: either an
-    explicit safe rewrite (bridge→beta-bridge, same API path) or a `RedirectError`.
+  - Given a response served from a different origin (redirect), Then `TransportError` —
+    either after a known-safe host rewrite (bridge→beta) or via the final-URL origin check.
+  - Given a 200 payload that is not a v1 AccountSet (shape or entry types wrong), Then
+    `TransportError`, not a crash deep in mapping.
 - **sync (stage 3)**
   - Given a range >90 days, Then it is split into ≤90-day windows with ≥5-day overlaps.
 
@@ -84,6 +86,7 @@ with `provenance: declared`, README quickstart copy-pastable.
 ## [2026-10-19] review | Round 2: A NOT READY (N1 TS1471 CJS types — validated via consumer probe, N2 builtin/globals guard gap — validated, N3 engines note), C PASS w/ reservations (403 taxonomy over-broad — validated as wiki fix). B: N5 and NodeNext-half of N1 FALSE-POSITIVE. Fixes: nested exports conditions (probe now clean), builtinModules-pattern lint + no-restricted-globals (both proven to fire), 403-mapping conditioned on protocol error bodies everywhere, code: pointers completed, dev-floor documented.
 ## [2026-10-19] review | Round 3: Gate A APPROVE, Gate C PASS (3 LOW polish: residual unconditional claim-403 wording, stale stage-0 tag, incomplete backstop citation) — all fixed; stage-0 tag moved to green HEAD. Stage 0 shipped.
 ## [2026-10-19] implement | Stage 1: claim/access-url/net/http/client/normalize/types/errors landed; 39 unit tests, coverage 92-100%, all module pages written; UA stance corrected to runtime-native (no custom header; CORS-safe).
+## [2026-10-19] review | Stage-1 gates: A + C both NOT READY (13+10 findings); B adjudicated with Node/Bun/Deno runtime probes. Validated+fixed: claim userinfo gate, claim+http off-origin refusal (origin, not hostname — closes port/scheme drift), 403 protocol-body discrimination on the claim path too, normalizeV1 unknown-input boundary predicate (crash→TransportError), InvalidAccessUrlError taxonomy completion, error url query-stripping, URIError leak closed, mockFetch clone-per-call, hasOwn/Map host table. Doc-only: errlist scenario re-scoped to Stage 2 (wire default is v1 — feature page was mis-scoped), stale UA/RedirectError contract bullets rewritten, http ordering prose aligned. FALSE-POSITIVE: none material; manual-redirect redesign rejected (browser-divergent, no security gain). Round 2 pending.
 
 ## Outcome
 

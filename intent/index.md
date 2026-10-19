@@ -26,6 +26,8 @@ Read this catalog first, then drill into the pages relevant to your task.
 ## Rules
 
 - `index.md` and `log.md` are bookkeeping; all other pages carry the frontmatter schema.
+- Module entry points carry `// intent: intent/modules/<name>.md`; the package surface
+  (`src/index.ts`) is not a module — its pointer targets `architecture.md` by design.
 
 - Every behavior/structure change updates the touched pages in the same commit.
 - `maps/external.md` is the single source of protocol facts; code claims must trace to a

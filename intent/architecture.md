@@ -35,8 +35,10 @@ credentials, then polls `{access}/accounts`. Facts and quirks: [maps/external.md
   a Cloudflare edge block) surfaces as a distinct transport error, not a false revocation.
   `402` ⇒ `PaymentRequiredError`, `429` ⇒ `RateLimitError`,
   `5xx` ⇒ `ServerError`, protocol error lists (`errors`/`errlist`) attached when present.
-- **Never silently follow cross-host redirects.** Bridge→beta-bridge 302s drop paths and
-  credentials; client uses `redirect: 'manual'` and rewrites known-safe cases explicitly.
+- **Never silently trust a redirect.** Bridge→beta-bridge 302s jump to the bare homepage
+  (path dropped). The known legacy host is rewritten up front; all requests use default
+  `follow` plus an **origin assertion** on the final response URL (scheme+host+port),
+  portable across Node/Bun/Deno (manual/opaqueredirect is browser-divergent).
 
 ## Modules (status per stage; pages in intent/modules/)
 

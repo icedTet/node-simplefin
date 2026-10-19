@@ -9,23 +9,28 @@ code: [src/net.ts]
 # Module: net
 
 ## Intent
-Shared isomorphic primitives: fetch resolution/injection, UTF-8 base64, legacy host rewrite.
-Keeps the `node:`-free guarantee of src honest by owning the only global-touching code.
+Shared isomorphic primitives where runtimes actually differ: fetch access, base64/UTF-8,
+legacy host rewrite, origin assertion. Standards-wide globals (URL, TextEncoder) are used
+directly where they live; this module owns the ones with runtime-divergent history.
 
 ## Contract
 - `FetchLike` — the injected seam used by every network caller (tests never monkey-patch).
-- `rewriteLegacyHost(url)` — map known-redirecting hosts (external.md) before requests.
+- `rewriteLegacyHost(url)` — Map-based explicit allowlist (external.md); unknown hosts pass
+  through unchanged. Map (not object) so hostname lookups can't hit prototype members.
+- `assertSameOrigin(response, requestUrl)` — refuse `response.url` from another
+  scheme/host/port; verified portable across Node/Bun/Deno with default `follow`
+  (manual/opaqueredirect is browser-divergent — not used).
 - `basicAuth(user, pass)` → `Basic <b64>`; `decodeBase64(text)` → UTF-8 string (throws on
   bad bytes — callers wrap).
-- `resolveFetch(injected?)` — fallback to global `fetch` with a clear TypeError if absent.
+- `resolveFetch(injected?)` — injected or global `fetch`; clear TypeError if absent.
 
 ## Dependencies
-Depended on by: [[modules/http]], [[modules/claim]]. Related: [[maps/external]]
+Depends on: [[modules/errors]]. Depended on by: [[modules/http]], [[modules/claim]],
+public `FetchLike` type via `src/index.ts`. Related: [[maps/external]]
 
 ## Constraints
-- Must stay dependency-free and Node-API-free (only standards globals: fetch/URL/TextEncoder/
-  TextDecoder/atob/btoa).
-- Host rewrite table is a **allow-list with explicit targets** — never a general resolver.
+- Node-API-free: standards globals only (fetch/URL/TextEncoder/TextDecoder/atob/btoa).
+- Host rewrite table: explicit pairs only — never a general resolver.
 
 ## Implementation pointers
 `src/net.ts`

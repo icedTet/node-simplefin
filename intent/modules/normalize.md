@@ -10,27 +10,32 @@ code: [src/normalize.ts]
 
 ## Intent
 One public model regardless of protocol version, so callers never branch on version and
-v1-era code keeps working when v2 becomes default.
+v1-era code keeps working when v2 becomes default. Also the **trust boundary**: raw JSON
+enters here and either becomes a typed model or a typed error.
 
 ## Contract
-- `normalizeV1(wire) → AccountSet`: hyphenated wire keys → camelCase public fields;
-  `errors` pass through verbatim; missing `transactions` → empty array;
-  `pending !== true → false`.
-- Connections are deduped by (sfin-url, domain, name); ids are synthesized
-  `conn-1…N` **per response, not stable across calls** (documented to consumers).
-- `extra` objects pass through untouched (type `Record<string, unknown>`).
-- Amount/balance strings are copied byte-for-byte — no numeric handling anywhere.
+- `normalizeV1(input: unknown) → AccountSet`. A structural predicate validates accounts
+  (id/name/currency/balance strings, optional transactions arrays of well-formed entries,
+  string-array `errors`); anything else → `TransportError` — never a deep TypeError.
+- Hyphenated wire keys → camelCase public fields; `errors` verbatim; missing
+  `transactions` → `[]`; `pending !== true → false`.
+- Connections deduped by (sfin-url, domain, name); synthesized `conn-N` ids are **per
+  response, not stable across calls** (documented to consumers).
+- `extra` objects pass through untouched.
+- Amount/balance strings copied byte-for-byte — no numeric handling anywhere.
 
 ## Dependencies
+Depends on: [[modules/types]] (shapes), [[modules/errors]] (boundary failures).
 Depended on by: [[modules/client]]. Related: [[maps/external]] (v1/v2 field table)
 
 ## Constraints
-- Stage 2 adds `normalizeV2` (conn_id, errlist→errors projection, holdings/passthrough
-  capture) behind the same AccountSet type. Both directions must stay symmetric; the
+- Stage 2 adds `normalizeV2` (conn_id, errlist→errors projection with naked-prefix
+  fallback, holdings/passthrough capture) behind the same AccountSet type; the
   normalization invariant is a Gate-C target every stage.
 
 ## Implementation pointers
-`src/normalize.ts` — `orgToConnection` holds the dedupe key.
+`src/normalize.ts` — `isWireAccountSetV1` predicate; `orgToConnection` holds the dedupe key.
 
 ## Known gaps
 - v2 passthrough capture (`holdings`, `payee`, `memo`, `mcc`, `x-api-message`): Stage 2.
+- Defensive `errlist`-on-success projection: Stage 2 (wire default is v1; external.md).
