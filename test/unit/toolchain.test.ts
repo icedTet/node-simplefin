@@ -45,7 +45,9 @@ describe('package wiring', () => {
   });
 
   it('ships only built artifacts plus docs', () => {
-    expect(pkg.files).toEqual(expect.arrayContaining(['dist', 'LICENSE', 'README.md']));
+    expect(pkg.files).toEqual(
+      expect.arrayContaining(['dist', 'LICENSE', 'README.md', 'CHANGELOG.md']),
+    );
     expect(pkg.files).not.toContain('src');
   });
 

@@ -43,4 +43,4 @@ export type {
 } from './types';
 export type { FetchLike } from './net';
 
-export const pkg = { name: 'node-simplefin', version: '0.0.1' } as const;
+export const pkg = { name: 'node-simplefin', version: '0.1.0' } as const;

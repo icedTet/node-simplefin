@@ -1,6 +1,6 @@
 {
   "name": "node-simplefin",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Isomorphic TypeScript client for the SimpleFIN financial data protocol",
   "keywords": [
     "simplefin",
@@ -37,7 +37,8 @@
   "files": [
     "dist",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "sideEffects": false,
   "engines": {

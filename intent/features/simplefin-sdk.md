@@ -115,3 +115,5 @@ with `provenance: declared`, README quickstart copy-pastable.
 
 ## [2026-10-19] review | Stage-3 round 1 resolutions complete (commits 3258b9b..HEAD): geometry ≤maxSpan default-45d (live-confirmed rec + cap rows), required startDate + maxRequests guard, deterministic v1 conn ids, posted-sorted merge, attribution errlist keys, guarded scrape, full doc reconciliation incl. late sync.md/testing.md/features fixes. 96 unit + integration green.
 
+## [2026-10-19] implement | Stage 4 landed: README (full), CHANGELOG, publish workflow (tag->npm provenance), version 0.1.0 (pkg export lockstep test). Feature page -> shipped after final gate.
+
