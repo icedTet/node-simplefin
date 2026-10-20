@@ -26,3 +26,5 @@ Append-only. Format: `## [YYYY-MM-DD] <op> | <subject> | touched: <pages>`
 
 ## [2026-10-19] implement | release choreography closure (final gates: A APPROVE w/ must-dos, C flagged F1 push/CI + bookkeeping): 2c7cb10 logged; endDate-exclusivity comment, README GitHub-absolute links + pkg line, publish tag↔version guard + format step, CHANGELOG both deferred promises, external.md redirect row corrected + bridge-issues#14 citation, errors↔types / types↔sync edges, internal/testing/features drift nits, DoD 98. Remaining ship gate: push + CI green + tag v0.1.0 (GitHub credentials needed) | touched: modules/errors.md, modules/types.md, maps/internal.md, maps/external.md, testing.md, features/simplefin-sdk.md
 
+## [2026-10-20] ship | v0.1.0 | pushed main (CI green: quality/node22/node24/bun/deno, run 39401296536), tagged v0.1.0; Publish workflow ran to npm auth step (blocked on NPM_TOKEN secret — rerun when added); feature -> shipped with Outcome; architecture/testing/internal statuses -> current | touched: features/simplefin-sdk.md, architecture.md, testing.md, index.md
+

@@ -1,6 +1,6 @@
 ---
 type: architecture
-status: in-progress
+status: current
 provenance: mixed
 updated: 2026-10-19
 code: [package.json, tsup.config.ts, tsconfig.src.json, eslint.config.js, src/index.ts]

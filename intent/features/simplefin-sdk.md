@@ -1,6 +1,6 @@
 ---
 type: feature
-status: in-progress
+status: shipped
 provenance: declared
 updated: 2026-10-19
 code: [src/, intent/maps/external.md]
@@ -41,7 +41,7 @@ wiki (subagent) → loop until green → commit, push, tag `stage-N`, CI green b
 | 1 | claim + access-url + http + client (v1) + errors | unit tests incl. all error mappings; scenario tests below pass |
 | 2 | v2 + normalize + passthrough fields | version-normalization invariants tested — landed, gates pending |
 | 3 | full suite, integration opt-in, sync helpers | ✓ 98 unit + fixtures + live integration demonstrated 2026-10-19; edge/UA-403 live re-verify deferred to a private-token run (documented in testing.md) |
-| 4 | README/docs/CHANGELOG, publish config | `npm pack` clean; docs match API |
+| 4 | README/docs/CHANGELOG, publish config | ✓ `npm pack` clean; CI green run 39401296536 (2026-10-20) |
 
 ## Contract — behavioral scenarios
 
@@ -102,7 +102,23 @@ with `provenance: declared`, README quickstart copy-pastable.
 
 ## Outcome
 
-(pending)
+Shipped v0.1.0 on 2026-10-20 (tag `v0.1.0`; CI green on Node 22/24 + Bun + Deno, run
+39401296536). Landed as designed: 12 modules, 98 hermetic unit tests + live-recorded
+fixtures + opt-in integration (demonstrated green 3x), the full intent wiki, and the
+A→B→C gate loop per stage (~20 review agents, 12 rounds).
+
+Deviations from the proposal, learned during implementation:
+- The task premise's API surface (`/updates`, cursors, `X-Status`) does not exist; the
+  SDK implements the real 4-endpoint protocol with date-window polling
+  ([../maps/external.md](../maps/external.md)).
+- Server recommendation is 45-day windows (not the 90-day cap); sync defaults follow it.
+- No custom User-Agent header (runtime-native live-verified sufficient; keeps the claim
+  POST CORS-simple).
+- `version=1` sent explicitly as a hedge against the documented v1-sunset default flip.
+
+Open debts (tracked on module pages): private-token live re-verifies (edge/UA-403,
+scripted 90-day cap), custom-currency helper, `ClientOptions` alias split pre-1.0, and
+npm publish awaiting the `NPM_TOKEN` secret (workflow otherwise green end-to-end).
 
 ## [2026-10-19] implement | Stage 2: normalizeV2 + version dispatch + errorPrefix + errlist/passthrough capture + HttpError.errlist; 69 tests, symmetry invariant pinned; explicit version=1 param (external.md guidance) — flagged in client.md.
 ## [2026-10-19] review | Stage-2 round 1: A+C blocked, B validated all 13 (live: mcc-null v2 payloads, connection org_name, v1 holdings). Fixes C1-C8 landed; wire.ts module added; live SDK-vs-bridge check passes for v1+v2 (80 tests). Round 2 pending.

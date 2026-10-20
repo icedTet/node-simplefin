@@ -1,6 +1,6 @@
 ---
 type: testing
-status: in-progress
+status: current
 provenance: declared
 updated: 2026-10-19
 code: [test/, scripts/smoke.mjs, vitest.config.ts, .github/workflows/ci.yml]

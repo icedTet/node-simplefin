@@ -9,11 +9,11 @@ Read this catalog first, then drill into the pages relevant to your task.
 
 | Page | Summary | Status |
 |---|---|---|
-| [architecture.md](architecture.md) | Package goals, layering, isomorphism strategy, stage plan | in-progress |
-| [testing.md](testing.md) | Hermetic unit tests, opt-in live integration, multi-runtime smoke | in-progress |
+| [architecture.md](architecture.md) | Package goals, layering, isomorphism strategy, stage plan | current |
+| [testing.md](testing.md) | Hermetic unit tests, opt-in live integration, multi-runtime smoke | current |
 | [maps/external.md](maps/external.md) | SimpleFIN protocol contract: endpoints, quirks, live-verified facts | current |
 | [maps/internal.md](maps/internal.md) | Module layout and data flow inside this repo | in-progress |
-| [features/simplefin-sdk.md](features/simplefin-sdk.md) | The SDK build itself: blueprint, contract, stage gates | in-progress |
+| [features/simplefin-sdk.md](features/simplefin-sdk.md) | The SDK build itself: blueprint, contract, stage gates | shipped |
 | [modules/claim.md](modules/claim.md) | Setup-token redemption | current |
 | [modules/access-url.md](modules/access-url.md) | Credential-safe access URL parsing | current |
 | [modules/net.md](modules/net.md) | Isomorphic primitives: fetch seam, base64, host rewrite | current |
